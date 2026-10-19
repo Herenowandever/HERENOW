@@ -39,7 +39,10 @@ function atobSafe(s: string) {
 export const configError = checkConfig()
 export const isConfigured = configError === null
 
-export const supabase = createClient(isConfigured ? url : 'https://not-configured.supabase.co', isConfigured ? key : 'not-configured', {
+// Keep only https://<project>.supabase.co, dropping anything pasted after it such as /rest/v1/.
+const baseUrl = isConfigured ? new URL(url).origin : 'https://not-configured.supabase.co'
+
+export const supabase = createClient(baseUrl, isConfigured ? key : 'not-configured', {
   auth: { persistSession: true, autoRefreshToken: true },
 })
 
