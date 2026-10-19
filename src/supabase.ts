@@ -16,6 +16,9 @@ function checkConfig(): string | null {
     return `VITE_SUPABASE_URL should be a web address like https://abcdefgh.supabase.co, but it starts with "${url.slice(0, 12)}…". Check you didn't swap the two values.`
   }
   if (u.protocol !== 'https:' && u.hostname !== 'localhost') return 'VITE_SUPABASE_URL must start with https://'
+  if (/(^|\.)supabase\.com$/.test(u.hostname)) {
+    return 'VITE_SUPABASE_URL is the address of the Supabase dashboard page. Use the Project URL instead, from Supabase → Project Settings → Data API; it looks like https://abcdefghijkl.supabase.co.'
+  }
   if (u.hostname === window.location.hostname || /\.vercel\.app$|\.netlify\.app$|vercel\.com$/.test(u.hostname)) {
     return `VITE_SUPABASE_URL is set to ${u.hostname}, which is a website address, not your Supabase project. Use the Project URL from Supabase → Project Settings → Data API; it ends in .supabase.co.`
   }
