@@ -12,7 +12,7 @@ Built with React + Vite (a web app that installs to the home screen) and Supabas
 
 1. Sign up at [supabase.com](https://supabase.com) and create a new project. Pick a region close to your users (for India, **Mumbai**).
 2. Open **SQL Editor → New query**, paste everything from `supabase/migrations/0001_herenow.sql`, and click **Run**.
-3. Do the same with `supabase/migrations/0002_selfie_storage.sql`, then `0003_crews_and_wages.sql`, `0004_remove_member.sql` and `0005_pay_rules.sql`. Always run the files in number order; when an update adds a new file, run just that one.
+3. Do the same with `supabase/migrations/0002_selfie_storage.sql`, then `0003_crews_and_wages.sql`, `0004_remove_member.sql`, `0005_pay_rules.sql` and `0006_safety.sql`. Always run the files in number order; when an update adds a new file, run just that one.
 4. Go to **Authentication → URL Configuration** and set **Site URL** to the address where the app will live (for example `https://your-project.vercel.app`). You can update it after deploying.
 5. Go to **Project Settings → API** and copy the **Project URL** and the **anon public** key.
 
@@ -26,7 +26,19 @@ Built with React + Vite (a web app that installs to the home screen) and Supabas
 
 Netlify, Cloudflare Pages and similar hosts work the same way: build command `npm run build`, output folder `dist`.
 
-### 3. First use
+### 3. Daily background job (deletes old photos)
+
+Each company chooses how long check-in photos are kept (Company → Security and privacy). A small job removes older ones every night.
+
+1. In Supabase, open **Edge Functions → Deploy a new function → Via editor**. Name it `herenow-jobs`, paste the contents of `supabase/functions/herenow-jobs/index.ts`, and deploy.
+2. Open the function's **Details** and turn **Verify JWT** off. The function checks its own secret instead.
+3. Open **Edge Functions → Secrets** and add `CRON_SECRET` with a long random value (for example, 40 random letters and numbers). Keep it private.
+4. Open **Integrations → Cron**, enable it if asked, and **Create job**: name `herenow-daily`, schedule `30 20 * * *` (2:00 am India time), type **Supabase Edge Function**, function `herenow-jobs`, method POST, and add an HTTP header `x-cron-secret` with the same value as step 3.
+5. Run the job once with **Run now** and check its result: it should report `photosDeleted` and no errors.
+
+The same job will send WhatsApp alerts later.
+
+### 4. First use
 
 1. Open the site, click **Create account**, confirm your email, and sign in.
 2. Choose **I'm setting up my company**. You become the company's admin.
@@ -54,6 +66,10 @@ Employees can install the app from their phone browser: on Android, use **Add to
 | Company rules | Under **Company**: weekly off days, whether daily-wage staff are paid for offs and holidays, the half-day cut-off, when overtime starts and its rate (1×–2×), a holiday list, and a weekly or monthly pay cycle. |
 | Salary staff | Each person is paid a daily wage or a monthly salary. Monthly salary is paid per day as salary ÷ days in the month, including offs and holidays; absent days are unpaid. |
 | Advances & deductions | Record cash advances, deductions and bonuses on the wage sheet. They're applied to net pay in the period of their date. |
+| Approving new members | On by default: people who join with the company code wait on the Team page until an admin approves them. |
+| Photo retention | Selfies and crew photos are deleted after 30 days to 1 year (each company chooses; 90 days by default). |
+| Two-step login | Admins can turn on a 6-digit code from an authenticator app (Company page), and a company can require it for all admins. The database enforces it: without the code, an admin's password alone gives no admin access. To reset a lost phone, delete the person's factor in Supabase → Authentication → Users → the user → MFA. |
+| Activity log | The Activity page lists who changed people, wages, attendance times, advances and settings. |
 | Languages | English, Hindi and Kannada for sign-in, clock-in, history and crew screens. Admin pages are in English. Have a native speaker check the wording before launch. |
 | Privacy notice | Shown before an employee's first clock-in, and recorded when they accept it. |
 | Multiple companies | Every table is protected by row-level security. Records are written only through database functions that check who is asking. |

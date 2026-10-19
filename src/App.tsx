@@ -15,11 +15,13 @@ import { OfficesPage } from './pages/admin/OfficesPage'
 import { QrScreen } from './pages/admin/QrScreen'
 import { ReportsPage } from './pages/admin/ReportsPage'
 import { SettingsPage } from './pages/admin/SettingsPage'
+import { ActivityPage } from './pages/admin/ActivityPage'
+import { PendingScreen, MfaChallenge, MfaSetup } from './pages/Security'
 
 export function App() {
   const route = useRoute()
   const t = useT()
-  const { loading, dbError, session, profile, company, signOut } = useSession()
+  const { loading, dbError, mfa, session, profile, company, signOut } = useSession()
 
   if (!isConfigured) {
     return (
@@ -39,6 +41,7 @@ export function App() {
 
   if (loading) return <div className="center-page"><Brand /><p className="muted">{t('loading')}</p></div>
   if (!session) return <AuthPage />
+  if (mfa.needsCode) return <MfaChallenge />
 
   if (dbError) {
     return (
@@ -48,7 +51,7 @@ export function App() {
           <h2>The database needs an update</h2>
           <p>
             This version of HereNow needs the newest database changes. In Supabase, open <strong>SQL Editor</strong>, paste the
-            contents of the newest file in <code>supabase/migrations</code> (for example <code>0005_pay_rules.sql</code>),
+            contents of the newest file in <code>supabase/migrations</code> (for example <code>0006_safety.sql</code>),
             and click <strong>Run</strong>. Then reload this page.
           </p>
           <p className="small muted mono break">{dbError}</p>
@@ -61,6 +64,7 @@ export function App() {
     )
   }
 
+  if (profile && !profile.approved) return <PendingScreen />
   if (!profile || !company) return <Onboard joinCode={route.query.get('code') ?? ''} />
 
   if (!profile.active) {
@@ -75,6 +79,8 @@ export function App() {
       </div>
     )
   }
+
+  if (profile.role === 'admin' && company.require_admin_mfa && !mfa.hasFactor) return <MfaSetup forced />
 
   const p = route.path
   const isAdmin = profile.role === 'admin'
@@ -92,6 +98,7 @@ export function App() {
   else if (isAdmin && p === '/admin/offices') page = <OfficesPage />
   else if (isAdmin && p === '/admin/reports') page = <ReportsPage />
   else if (isAdmin && p === '/admin/settings') page = <SettingsPage />
+  else if (isAdmin && p === '/admin/activity') page = <ActivityPage />
   else page = <ClockPage />
 
   return <Layout path={p}>{page}</Layout>

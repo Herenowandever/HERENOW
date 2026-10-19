@@ -6,7 +6,7 @@ import type { Role } from '../supabase'
 const NAV: Record<Role, string[]> = {
   employee: ['/', '/history'],
   supervisor: ['/', '/crew', '/history'],
-  admin: ['/', '/crew', '/admin', '/admin/team', '/admin/shifts', '/admin/offices', '/admin/reports', '/admin/settings'],
+  admin: ['/', '/crew', '/admin', '/admin/team', '/admin/shifts', '/admin/offices', '/admin/reports', '/admin/activity', '/admin/settings'],
 }
 
 const LABEL: Record<string, string> = {
@@ -18,6 +18,7 @@ const LABEL: Record<string, string> = {
   '/admin/shifts': 'nav.shifts',
   '/admin/offices': 'nav.offices',
   '/admin/reports': 'nav.reports',
+  '/admin/activity': 'nav.activity',
   '/admin/settings': 'nav.company',
 }
 

@@ -5,6 +5,7 @@ import { useAsync, must } from '../../lib/useAsync'
 import { friendly } from '../../lib/errors'
 import { TIMEZONES, dateIn, prettyDate } from '../../lib/time'
 import { Loading, Note } from '../../components/ui'
+import { MfaSetup } from '../Security'
 
 const DAYS = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday']
 
@@ -17,7 +18,7 @@ interface Holiday {
 type Msg = { tone: 'ok' | 'bad'; text: string } | null
 
 export function SettingsPage() {
-  const { company, refresh } = useMember()
+  const { company, refresh, mfa } = useMember()
 
   // Company details
   const [name, setName] = useState(company.name)
@@ -32,6 +33,9 @@ export function SettingsPage() {
   const [otMult, setOtMult] = useState(String(company.ot_multiplier ?? 1))
   const [cycle, setCycle] = useState(company.pay_cycle ?? 'monthly')
   const [weekStart, setWeekStart] = useState(company.week_starts ?? 1)
+  const [approval, setApproval] = useState(company.require_approval ?? true)
+  const [keepDays, setKeepDays] = useState(company.photo_retention_days ?? 90)
+  const [requireMfa, setRequireMfa] = useState(company.require_admin_mfa ?? false)
   const [msg, setMsg] = useState<Msg>(null)
   const [saving, setSaving] = useState(false)
 
@@ -45,12 +49,14 @@ export function SettingsPage() {
     if (!Number.isInteger(oa) || oa < 0 || oa > 600) return setMsg({ tone: 'bad', text: 'Overtime minimum must be a whole number of minutes from 0 to 600.' })
     if (Number.isNaN(om) || om < 0 || om > 5) return setMsg({ tone: 'bad', text: 'Overtime rate must be between 0 and 5 times normal pay.' })
     if (offs.length >= 7) return setMsg({ tone: 'bad', text: 'Leave at least one working day in the week.' })
+    if (requireMfa && !company.require_admin_mfa && !mfa.hasFactor) return setMsg({ tone: 'bad', text: 'Set up your own two-step login (at the bottom of this page) before requiring it for all admins.' })
     setSaving(true)
     const { error } = await supabase
       .from('companies')
       .update({
         name: name.trim(), timezone: tz, weekly_offs: [...offs].sort(), paid_weekly_off: paidOff, paid_holidays: paidHol,
         half_day_hours: hd, ot_after_minutes: oa, ot_multiplier: om, pay_cycle: cycle, week_starts: weekStart,
+        require_approval: approval, photo_retention_days: keepDays, require_admin_mfa: requireMfa,
       })
       .eq('id', company.id)
     setSaving(false)
@@ -140,11 +146,37 @@ export function SettingsPage() {
           <p className="small muted">The wage sheet opens on the current {cycle === 'weekly' ? 'week' : 'month'}. You can still look at any period.</p>
         </section>
 
+        <section className="panel">
+          <h2>Security and privacy</h2>
+          <label className="check"><input type="checkbox" id="req-approval" checked={approval} onChange={(e) => setApproval(e.target.checked)} />
+            Approve new members before they can use HereNow</label>
+          <p className="small muted">When on, people who join with your company code wait on the Team page until an admin approves them.</p>
+          <label className="field narrow">Keep check-in photos for
+            <select id="keep-days" value={keepDays} onChange={(e) => setKeepDays(Number(e.target.value))}>
+              {[30, 60, 90, 180, 365].includes(keepDays) ? null : <option value={keepDays}>{keepDays} days</option>}
+              <option value={30}>30 days</option>
+              <option value={60}>60 days</option>
+              <option value={90}>90 days</option>
+              <option value={180}>6 months</option>
+              <option value={365}>1 year</option>
+            </select>
+          </label>
+          <p className="small muted">Selfies and crew photos older than this are deleted automatically each night. Attendance times are kept.</p>
+          <label className="check"><input type="checkbox" id="req-mfa" checked={requireMfa} onChange={(e) => setRequireMfa(e.target.checked)} />
+            Require two-step login for all admins</label>
+          <p className="small muted">Admins without it will be asked to set it up the next time they open HereNow. Set up your own below first.</p>
+        </section>
+
         {msg && <Note tone={msg.tone}>{msg.text}</Note>}
         <div><button className="btn primary" disabled={saving}>{saving ? 'Saving…' : 'Save settings'}</button></div>
       </form>
 
       <Holidays companyId={company.id} tz={company.timezone} />
+
+      <section className="panel">
+        <h2>Your two-step login</h2>
+        <MfaSetup />
+      </section>
     </div>
   )
 }

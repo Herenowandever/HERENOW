@@ -23,6 +23,7 @@ const D: Record<string, Entry> = {
   'nav.offices': ['Sites & QR', 'साइट और QR', 'ಸೈಟ್ ಮತ್ತು QR'],
   'nav.reports': ['Reports', 'रिपोर्ट', 'ವರದಿಗಳು'],
   'nav.company': ['Company', 'कंपनी', 'ಕಂಪನಿ'],
+  'nav.activity': ['Activity', 'गतिविधि', 'ಚಟುವಟಿಕೆ'],
   signOut: ['Sign out', 'साइन आउट', 'ಸೈನ್ ಔಟ್'],
   loading: ['Loading…', 'लोड हो रहा है…', 'ಲೋಡ್ ಆಗುತ್ತಿದೆ…'],
   pleaseWait: ['Please wait…', 'कृपया रुकें…', 'ದಯವಿಟ್ಟು ಕಾಯಿರಿ…'],
@@ -81,6 +82,17 @@ const D: Record<string, Entry> = {
     '{company} के एडमिन ने आपका खाता बंद कर दिया है। अगर यह गलती है, तो उनसे दोबारा चालू करने को कहें।',
     '{company} ಅಡ್ಮಿನ್ ನಿಮ್ಮ ಖಾತೆಯನ್ನು ನಿಷ್ಕ್ರಿಯಗೊಳಿಸಿದ್ದಾರೆ. ಇದು ತಪ್ಪಾಗಿದ್ದರೆ ಮತ್ತೆ ಸಕ್ರಿಯಗೊಳಿಸಲು ಅವರನ್ನು ಕೇಳಿ.',
   ],
+
+  // Waiting for approval
+  'pend.title': ['Waiting for approval', 'मंज़ूरी का इंतज़ार', 'ಅನುಮೋದನೆಗಾಗಿ ಕಾಯಲಾಗುತ್ತಿದೆ'],
+  'pend.body': [
+    'Your request to join {company} has been sent. An admin needs to approve it before you can clock in.',
+    '{company} से जुड़ने का आपका अनुरोध भेज दिया गया है। हाज़िरी लगाने से पहले एडमिन को इसे मंज़ूर करना होगा।',
+    '{company} ಗೆ ಸೇರುವ ನಿಮ್ಮ ವಿನಂತಿಯನ್ನು ಕಳುಹಿಸಲಾಗಿದೆ. ಹಾಜರಿ ಹಾಕುವ ಮೊದಲು ಅಡ್ಮಿನ್ ಅನುಮೋದಿಸಬೇಕು.',
+  ],
+  'pend.check': ['Check again', 'फिर से देखें', 'ಮತ್ತೆ ಪರಿಶೀಲಿಸಿ'],
+  'pend.cancel': ['Cancel request', 'अनुरोध रद्द करें', 'ವಿನಂತಿ ರದ್ದುಮಾಡಿ'],
+  'pend.unknown': ['your company', 'आपकी कंपनी', 'ನಿಮ್ಮ ಕಂಪನಿ'],
 
   // Clock in
   'clk.hi': ['Hi {name}', 'नमस्ते {name}', 'ನಮಸ್ಕಾರ {name}'],

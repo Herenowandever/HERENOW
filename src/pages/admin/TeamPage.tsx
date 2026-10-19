@@ -61,6 +61,8 @@ export function TeamPage() {
         {codeMsg && <Note tone="ok">{codeMsg}</Note>}
       </section>
 
+      <PendingRequests onChange={reload} requireApproval={company.require_approval} />
+
       <section className="panel">
         <h2>People</h2>
         {notice && <Note tone="ok">{notice}</Note>}
@@ -74,13 +76,13 @@ export function TeamPage() {
         )}
       </section>
 
-      {data && data.people.some((p) => !p.active) && (
+      {data && data.people.some((p) => !p.active && p.approved) && (
         <section className="panel">
           <details>
-            <summary className="removed-summary">Removed people ({data.people.filter((p) => !p.active).length})</summary>
+            <summary className="removed-summary">Removed people ({data.people.filter((p) => !p.active && p.approved).length})</summary>
             <p className="small muted">Their past attendance stays in reports and wage sheets. Restore someone to bring them back.</p>
             <div className="people">
-              {data.people.filter((p) => !p.active).map((p) => <RemovedRow key={p.id} p={p} onRestored={reload} />)}
+              {data.people.filter((p) => !p.active && p.approved).map((p) => <RemovedRow key={p.id} p={p} onRestored={reload} />)}
             </div>
           </details>
         </section>
@@ -299,5 +301,57 @@ function RemovedRow({ p, onRestored }: { p: Profile; onRestored: () => void }) {
       </div>
       {err && <Note tone="bad">{err}</Note>}
     </div>
+  )
+}
+
+interface Pending {
+  id: string
+  full_name: string
+  email: string | null
+  requested_at: string
+}
+
+function PendingRequests({ onChange, requireApproval }: { onChange: () => void; requireApproval: boolean }) {
+  const { data, error, reload } = useAsync(async () => must(await supabase.rpc('pending_members')) as Pending[], [])
+  const [msg, setMsg] = useState<{ tone: 'ok' | 'bad'; text: string } | null>(null)
+  const [busy, setBusy] = useState<string | null>(null)
+
+  async function act(p: Pending, approve: boolean) {
+    setBusy(p.id)
+    setMsg(null)
+    const { error: e } = await supabase.rpc(approve ? 'approve_member' : 'reject_member', { p_member: p.id })
+    setBusy(null)
+    if (e) setMsg({ tone: 'bad', text: friendly(e).text })
+    else {
+      setMsg({ tone: 'ok', text: approve ? `${p.full_name} can now use HereNow. Set their site, shift and pay below.` : `Request from ${p.full_name} turned down.` })
+      reload()
+      onChange()
+    }
+  }
+
+  if (error) return <Note tone="bad">{friendly(error).text}</Note>
+  if (!data || (data.length === 0 && !msg)) return null
+  return (
+    <section className="panel pending-panel">
+      <h2>Waiting for approval{data.length ? ` (${data.length})` : ''}</h2>
+      {data.length > 0 && (
+        <p className="small muted">These people joined with your company code. Approve only people you know work for you.</p>
+      )}
+      {data.map((p) => (
+        <div key={p.id} className="pending-row">
+          <Avatar name={p.full_name} />
+          <div className="minw0">
+            <div>{p.full_name}</div>
+            <div className="meta break">{p.email ?? ''}</div>
+          </div>
+          <div className="row end">
+            <button className="btn primary small-btn" disabled={busy === p.id} onClick={() => act(p, true)}>Approve</button>
+            <button className="btn ghost small-btn" disabled={busy === p.id} onClick={() => act(p, false)}>Turn down</button>
+          </div>
+        </div>
+      ))}
+      {msg && <Note tone={msg.tone}>{msg.text}</Note>}
+      {!requireApproval && <p className="small muted">Approval is switched off in Company settings, so new people join straight away.</p>}
+    </section>
   )
 }

@@ -5,11 +5,35 @@ import { supabase, PROFILE_COLS, COMPANY_COLS, type Company, type Profile } from
 interface Ctx {
   loading: boolean
   dbError: string | null
+  mfa: MfaState
   session: Session | null
   profile: Profile | null
   company: Company | null
   refresh: () => Promise<void>
   signOut: () => Promise<void>
+}
+
+export interface MfaState {
+  /** The session needs a code from the authenticator app before it's fully signed in. */
+  needsCode: boolean
+  /** The person has a working authenticator app set up. */
+  hasFactor: boolean
+  factorId: string | null
+}
+const NO_MFA: MfaState = { needsCode: false, hasFactor: false, factorId: null }
+
+async function loadMfa(): Promise<MfaState> {
+  try {
+    const [aal, factors] = await Promise.all([supabase.auth.mfa.getAuthenticatorAssuranceLevel(), supabase.auth.mfa.listFactors()])
+    const verified = factors.data?.totp?.find((f) => f.status === 'verified') ?? null
+    return {
+      needsCode: aal.data?.nextLevel === 'aal2' && aal.data?.currentLevel !== 'aal2',
+      hasFactor: !!verified,
+      factorId: verified?.id ?? null,
+    }
+  } catch {
+    return NO_MFA
+  }
 }
 
 const SessionContext = createContext<Ctx | null>(null)
@@ -20,15 +44,18 @@ export function SessionProvider({ children }: { children: ReactNode }) {
   const [company, setCompany] = useState<Company | null>(null)
   const [loading, setLoading] = useState(true)
   const [dbError, setDbError] = useState<string | null>(null)
+  const [mfa, setMfa] = useState<MfaState>(NO_MFA)
 
   const load = useCallback(async (s: Session | null) => {
     setSession(s)
     if (!s) {
       setProfile(null)
       setCompany(null)
+      setMfa(NO_MFA)
       setLoading(false)
       return
     }
+    setMfa(await loadMfa())
     const { data: p, error } = await supabase.from('profiles').select(PROFILE_COLS).eq('id', s.user.id).maybeSingle()
     if (error) {
       // Usually means a newer database update hasn't been run yet. Don't send the person to onboarding.
@@ -55,7 +82,7 @@ export function SessionProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     supabase.auth.getSession().then(({ data }) => load(data.session))
     const { data } = supabase.auth.onAuthStateChange((event, s) => {
-      if (event === 'SIGNED_IN' || event === 'SIGNED_OUT' || event === 'USER_UPDATED') {
+      if (event === 'SIGNED_IN' || event === 'SIGNED_OUT' || event === 'USER_UPDATED' || event === 'MFA_CHALLENGE_VERIFIED') {
         // Defer so we don't call Supabase inside its own auth callback.
         setTimeout(() => load(s), 0)
       }
@@ -74,7 +101,7 @@ export function SessionProvider({ children }: { children: ReactNode }) {
   }, [])
 
   return (
-    <SessionContext.Provider value={{ loading, dbError, session, profile, company, refresh, signOut }}>{children}</SessionContext.Provider>
+    <SessionContext.Provider value={{ loading, dbError, mfa, session, profile, company, refresh, signOut }}>{children}</SessionContext.Provider>
   )
 }
 
