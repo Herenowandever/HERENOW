@@ -1,6 +1,6 @@
 import { useRoute } from './lib/router'
 import { useSession } from './lib/session'
-import { isConfigured } from './supabase'
+import { isConfigured, configError } from './supabase'
 import { Layout, Brand } from './components/Layout'
 import { AuthPage } from './pages/AuthPage'
 import { Onboard } from './pages/Onboard'
@@ -24,9 +24,10 @@ export function App() {
         <Brand />
         <div className="panel">
           <h2>Almost there</h2>
+          <p className="msg bad">{configError}</p>
           <p>
-            Add <code>VITE_SUPABASE_URL</code> and <code>VITE_SUPABASE_ANON_KEY</code> to your environment, then restart or
-            redeploy. The README explains where to find them.
+            Fix this in Vercel under <strong>Settings → Environment Variables</strong>, then open <strong>Deployments</strong> and
+            choose <strong>Redeploy</strong> on the latest one. The values come from Supabase under <strong>Project Settings → API Keys</strong>.
           </p>
         </div>
       </div>
