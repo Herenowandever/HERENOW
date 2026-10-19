@@ -1,4 +1,4 @@
-# HereNow
+# Musterly
 
 Attendance for construction sites, field crews and small businesses. Employees clock in from their phone with a **location check**, a **selfie**, and a **QR code backup**. **Site supervisors** mark whole crews in and out with one group photo, including workers who don't have a phone. Admins get a live attendance board, shift scheduling, site zones, monthly reports and a **daily-wage sheet** for payroll. Works in **English, Hindi and Kannada**. Many companies can use one deployment; each company only ever sees its own data.
 
@@ -30,10 +30,10 @@ Netlify, Cloudflare Pages and similar hosts work the same way: build command `np
 
 Each company chooses how long check-in photos are kept (Company → Security and privacy). A small job removes older ones every night.
 
-1. In Supabase, open **Edge Functions → Deploy a new function → Via editor**. Name it `herenow-jobs`, paste the contents of `supabase/functions/herenow-jobs/index.ts`, and deploy.
+1. In Supabase, open **Edge Functions → Deploy a new function → Via editor**. Name it `musterly-jobs`, paste the contents of `supabase/functions/musterly-jobs/index.ts`, and deploy.
 2. Open the function's **Details** and turn **Verify JWT** off. The function checks its own secret instead.
 3. Open **Edge Functions → Secrets** and add `CRON_SECRET` with a long random value (for example, 40 random letters and numbers). Keep it private.
-4. Open **Integrations → Cron**, enable it if asked, and **Create job**: name `herenow-daily`, schedule `30 20 * * *` (2:00 am India time), type **Supabase Edge Function**, function `herenow-jobs`, method POST, and add an HTTP header `x-cron-secret` with the same value as step 3.
+4. Open **Integrations → Cron**, enable it if asked, and **Create job**: name `musterly-daily`, schedule `30 20 * * *` (2:00 am India time), type **Supabase Edge Function**, function `musterly-jobs`, method POST, and add an HTTP header `x-cron-secret` with the same value as step 3.
 5. Run the job once with **Run now** and check its result: it should report `photosDeleted` and no errors.
 
 The same job will send WhatsApp alerts later.

@@ -1,9 +1,9 @@
-// HereNow background jobs, run once a day by Supabase Cron.
+// Musterly background jobs, run once a day by Supabase Cron.
 // Today: deletes check-in photos older than each company's retention period.
 // Later: WhatsApp alerts will run from here too.
 //
 // Setup (see README → "Daily background job"):
-//   1. Create this function in Supabase → Edge Functions, named "herenow-jobs", with "Verify JWT" turned off.
+//   1. Create this function in Supabase → Edge Functions, named "musterly-jobs", with "Verify JWT" turned off.
 //   2. Add a secret CRON_SECRET (any long random text) under Edge Functions → Secrets.
 //   3. Schedule it daily in Supabase → Integrations → Cron, sending the header  x-cron-secret: <same text>.
 //
@@ -56,7 +56,7 @@ Deno.serve(async (req) => {
     if (rows.length < BATCH) break
   }
 
-  console.log('herenow-jobs', JSON.stringify(report))
+  console.log('musterly-jobs', JSON.stringify(report))
   return json(report, report.errors.length ? 500 : 200)
 })
 

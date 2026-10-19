@@ -18,7 +18,7 @@ const ENGLISH_ONLY: Record<string, string> = {
   MFA_REQUIRED: 'Enter the code from your authenticator app first. Sign out and back in if you are not asked for it.',
   BAD_PERIOD: 'Choose a period of up to two months.',
   CANNOT_REMOVE_SELF: "You can't remove yourself. Ask another admin to do it.",
-  CAMERA_DENIED: 'HereNow needs the camera. Allow camera access in your browser settings.',
+  CAMERA_DENIED: 'Musterly needs the camera. Allow camera access in your browser settings.',
 }
 
 export function friendly(err: unknown): Friendly {

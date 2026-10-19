@@ -323,7 +323,7 @@ function PendingRequests({ onChange, requireApproval }: { onChange: () => void; 
     setBusy(null)
     if (e) setMsg({ tone: 'bad', text: friendly(e).text })
     else {
-      setMsg({ tone: 'ok', text: approve ? `${p.full_name} can now use HereNow. Set their site, shift and pay below.` : `Request from ${p.full_name} turned down.` })
+      setMsg({ tone: 'ok', text: approve ? `${p.full_name} can now use Musterly. Set their site, shift and pay below.` : `Request from ${p.full_name} turned down.` })
       reload()
       onChange()
     }

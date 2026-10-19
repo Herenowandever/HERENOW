@@ -104,9 +104,9 @@ const D: Record<string, Entry> = {
   'clk.notIn': ['Not clocked in', 'हाज़िरी नहीं लगी', 'ಹಾಜರಿ ಹಾಕಿಲ್ಲ'],
   'clk.beforeTitle': ['Before you clock in', 'हाज़िरी लगाने से पहले', 'ಹಾಜರಿ ಹಾಕುವ ಮೊದಲು'],
   'clk.notice1': [
-    'HereNow checks your location only at the moment you clock in or out. It does not track you during the day.',
-    'HereNow आपकी लोकेशन सिर्फ़ हाज़िरी लगाते और छुट्टी करते समय देखता है। दिन भर आपको ट्रैक नहीं करता।',
-    'HereNow ನೀವು ಹಾಜರಿ ಹಾಕುವಾಗ ಮತ್ತು ಹೊರಡುವಾಗ ಮಾತ್ರ ನಿಮ್ಮ ಸ್ಥಳವನ್ನು ನೋಡುತ್ತದೆ. ದಿನವಿಡೀ ನಿಮ್ಮನ್ನು ಟ್ರ್ಯಾಕ್ ಮಾಡುವುದಿಲ್ಲ.',
+    'Musterly checks your location only at the moment you clock in or out. It does not track you during the day.',
+    'Musterly आपकी लोकेशन सिर्फ़ हाज़िरी लगाते और छुट्टी करते समय देखता है। दिन भर आपको ट्रैक नहीं करता।',
+    'Musterly ನೀವು ಹಾಜರಿ ಹಾಕುವಾಗ ಮತ್ತು ಹೊರಡುವಾಗ ಮಾತ್ರ ನಿಮ್ಮ ಸ್ಥಳವನ್ನು ನೋಡುತ್ತದೆ. ದಿನವಿಡೀ ನಿಮ್ಮನ್ನು ಟ್ರ್ಯಾಕ್ ಮಾಡುವುದಿಲ್ಲ.',
   ],
   'clk.notice2': [
     'Your check-in selfie is visible to you and to the admins at {company}.',
@@ -121,9 +121,9 @@ const D: Record<string, Entry> = {
   'clk.understand': ['I understand', 'मैं समझ गया/गई', 'ನನಗೆ ಅರ್ಥವಾಯಿತು'],
   'clk.scanTitle': ['Scan the site QR code', 'साइट का QR कोड स्कैन करें', 'ಸೈಟ್‌ನ QR ಕೋಡ್ ಸ್ಕ್ಯಾನ್ ಮಾಡಿ'],
   'clk.scanHint': [
-    'Point your camera at the HereNow QR screen.',
-    'कैमरा HereNow की QR स्क्रीन की ओर करें।',
-    'ಕ್ಯಾಮೆರಾವನ್ನು HereNow QR ಪರದೆಯ ಕಡೆ ತೋರಿಸಿ.',
+    'Point your camera at the Musterly QR screen.',
+    'कैमरा Musterly की QR स्क्रीन की ओर करें।',
+    'ಕ್ಯಾಮೆರಾವನ್ನು Musterly QR ಪರದೆಯ ಕಡೆ ತೋರಿಸಿ.',
   ],
   'clk.doneTitle': ['All done for today', 'आज का काम पूरा', 'ಇಂದಿನ ಕೆಲಸ ಮುಗಿಯಿತು'],
   'clk.doneBody': [
@@ -270,9 +270,9 @@ const D: Record<string, Entry> = {
     'ಈಗ ನಿಮ್ಮ ಸ್ಥಳ ಸುಮಾರು {0} ಮೀ ವರೆಗೆ ಮಾತ್ರ ನಿಖರವಾಗಿದೆ. ತೆರೆದ ಜಾಗಕ್ಕೆ ಹೋಗಿ ಮತ್ತೆ ಪ್ರಯತ್ನಿಸಿ, ಅಥವಾ QR ಸ್ಕ್ಯಾನ್ ಮಾಡಿ.',
   ],
   'err.GEO_DENIED': [
-    'HereNow needs your location. Allow location for this site in your browser settings, or scan the site QR code.',
-    'HereNow को आपकी लोकेशन चाहिए। ब्राउज़र सेटिंग में लोकेशन की अनुमति दें, या QR स्कैन करें।',
-    'HereNow ಗೆ ನಿಮ್ಮ ಸ್ಥಳ ಬೇಕು. ಬ್ರೌಸರ್ ಸೆಟ್ಟಿಂಗ್‌ನಲ್ಲಿ ಸ್ಥಳ ಅನುಮತಿ ನೀಡಿ, ಅಥವಾ QR ಸ್ಕ್ಯಾನ್ ಮಾಡಿ.',
+    'Musterly needs your location. Allow location for this site in your browser settings, or scan the site QR code.',
+    'Musterly को आपकी लोकेशन चाहिए। ब्राउज़र सेटिंग में लोकेशन की अनुमति दें, या QR स्कैन करें।',
+    'Musterly ಗೆ ನಿಮ್ಮ ಸ್ಥಳ ಬೇಕು. ಬ್ರೌಸರ್ ಸೆಟ್ಟಿಂಗ್‌ನಲ್ಲಿ ಸ್ಥಳ ಅನುಮತಿ ನೀಡಿ, ಅಥವಾ QR ಸ್ಕ್ಯಾನ್ ಮಾಡಿ.',
   ],
   'err.GEO_FAILED': [
     "Your phone couldn't find your location. Try again in the open, or scan the site QR code.",

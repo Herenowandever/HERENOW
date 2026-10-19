@@ -16,9 +16,9 @@ class ErrorBoundary extends Component<{ children: ReactNode }, { error: Error | 
     return (
       <div className="center-page">
         <div className="panel">
-          <h2>HereNow hit a problem</h2>
+          <h2>Musterly hit a problem</h2>
           <p className="msg bad mono break">{this.state.error.message}</p>
-          <p className="small muted">Reload the page to try again. If it keeps happening, send this message to your HereNow admin or developer.</p>
+          <p className="small muted">Reload the page to try again. If it keeps happening, send this message to your Musterly admin or developer.</p>
           <button className="btn" onClick={() => window.location.reload()}>Reload</button>
         </div>
       </div>

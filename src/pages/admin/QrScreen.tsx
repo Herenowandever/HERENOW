@@ -28,6 +28,7 @@ export function QrScreen({ officeId }: { officeId: string }) {
       setErr(null)
       setName((o.data as { name: string } | null)?.name ?? '')
       setCode(c.data as string)
+      // "HERENOW:" is a fixed internal prefix the database expects; it never shows to people.
       setImg(await QRCode.toDataURL(`HERENOW:${officeId}:${c.data}`, { width: 720, margin: 1, errorCorrectionLevel: 'M' }))
     }
     load()
@@ -60,7 +61,7 @@ export function QrScreen({ officeId }: { officeId: string }) {
           {img ? <img className="qr-img" src={img} alt={`QR code for ${name}`} /> : <div className="qr-img placeholder" />}
           <div className="label">Or type today's code</div>
           <div className="code big-code num">{code ?? '······'}</div>
-          <p className="small muted">Open HereNow, tap "Scan office QR instead", and point your camera here. The code changes every day.</p>
+          <p className="small muted">Open Musterly, tap "Scan site QR instead", and point your camera here. The code changes every day.</p>
         </div>
       )}
     </div>
