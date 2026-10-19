@@ -3,8 +3,10 @@ import { supabase } from '../supabase'
 import { Brand } from '../components/Layout'
 import { Note } from '../components/ui'
 import { friendly } from '../lib/errors'
+import { useT, LangSwitch } from '../lib/i18n'
 
 export function AuthPage() {
+  const t = useT()
   const [mode, setMode] = useState<'signin' | 'signup' | 'reset'>('signin')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
@@ -26,11 +28,11 @@ export function AuthPage() {
           options: { emailRedirectTo: window.location.origin + '/' + window.location.hash },
         })
         if (error) throw error
-        if (!data.session) setMsg({ tone: 'ok', text: `We sent a confirmation link to ${email}. Open it, then sign in here.` })
+        if (!data.session) setMsg({ tone: 'ok', text: t('auth.confirmSent', { email }) })
       } else {
         const { error } = await supabase.auth.resetPasswordForEmail(email, { redirectTo: window.location.origin })
         if (error) throw error
-        setMsg({ tone: 'ok', text: `If ${email} has an account, a password reset link is on its way.` })
+        setMsg({ tone: 'ok', text: t('auth.resetSent', { email }) })
       }
     } catch (err) {
       setMsg({ tone: 'bad', text: friendly(err).text })
@@ -41,19 +43,19 @@ export function AuthPage() {
 
   return (
     <div className="center-page">
-      <Brand sub="Attendance that knows you're here" />
+      <div className="row between"><Brand sub={t('auth.tagline')} /><LangSwitch /></div>
       <form className="panel" onSubmit={submit}>
         <div className="seg" role="tablist" aria-label="Account">
-          <button type="button" role="tab" aria-selected={mode === 'signin'} onClick={() => setMode('signin')}>Sign in</button>
-          <button type="button" role="tab" aria-selected={mode === 'signup'} onClick={() => setMode('signup')}>Create account</button>
+          <button type="button" role="tab" aria-selected={mode === 'signin'} onClick={() => setMode('signin')}>{t('auth.signIn')}</button>
+          <button type="button" role="tab" aria-selected={mode === 'signup'} onClick={() => setMode('signup')}>{t('auth.create')}</button>
         </div>
         <label className="field">
-          Work email
+          {t('auth.email')}
           <input id="auth-email" type="email" autoComplete="email" required value={email} onChange={(e) => setEmail(e.target.value)} />
         </label>
         {mode !== 'reset' && (
           <label className="field">
-            Password
+            {t('auth.password')}
             <input
               id="auth-password"
               type="password"
@@ -67,15 +69,15 @@ export function AuthPage() {
         )}
         {msg && <Note tone={msg.tone}>{msg.text}</Note>}
         <button className="btn primary big" disabled={busy}>
-          {busy ? 'Please wait…' : mode === 'signin' ? 'Sign in' : mode === 'signup' ? 'Create account' : 'Send reset link'}
+          {busy ? t('pleaseWait') : mode === 'signin' ? t('auth.signIn') : mode === 'signup' ? t('auth.create') : t('auth.sendReset')}
         </button>
         {mode === 'signin' && (
-          <button type="button" className="linkish" onClick={() => setMode('reset')}>Forgot your password?</button>
+          <button type="button" className="linkish" onClick={() => setMode('reset')}>{t('auth.forgot')}</button>
         )}
         {mode === 'reset' && (
-          <button type="button" className="linkish" onClick={() => setMode('signin')}>Back to sign in</button>
+          <button type="button" className="linkish" onClick={() => setMode('signin')}>{t('auth.back')}</button>
         )}
-        {mode === 'signup' && <p className="small muted">After creating your account you'll set up your company or join one with a code from your admin.</p>}
+        {mode === 'signup' && <p className="small muted">{t('auth.afterCreate')}</p>}
       </form>
     </div>
   )

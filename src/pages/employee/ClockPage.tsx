@@ -8,11 +8,13 @@ import { dateIn, timeIn, hm, hoursBetween } from '../../lib/time'
 import { SelfieCapture } from '../../components/SelfieCapture'
 import { QrScanner } from '../../components/QrScanner'
 import { Note, Pill, Loading } from '../../components/ui'
+import { useT } from '../../lib/i18n'
 
 type Kind = 'in' | 'out'
 
 export function ClockPage() {
   const { profile, company, userId, refresh } = useMember()
+  const t = useT()
   const tz = company.timezone
   const today = dateIn(tz)
 
@@ -63,7 +65,7 @@ export function ClockPage() {
         if (kind === 'in') {
           if (!selfie && !path) throw new Error('NEEDS_SELFIE')
           if (!path && selfie) {
-            setBusy('Uploading selfie…')
+            setBusy(t('clk.uploading'))
             path = `${company.id}/${userId}/${today}-${Date.now()}.jpg`
             const up = await supabase.storage.from('selfies').upload(path, selfie, { contentType: 'image/jpeg', upsert: false })
             if (up.error) throw new Error(up.error.message)
@@ -74,12 +76,12 @@ export function ClockPage() {
         if (qr) {
           args = { p_qr: qr }
         } else {
-          setBusy('Finding your location…')
+          setBusy(t('clk.locating'))
           const f = await getFix()
           setFix(f)
           args = { p_lat: f.lat, p_lng: f.lng, p_accuracy: Math.round(f.accuracy) }
         }
-        setBusy(kind === 'in' ? 'Clocking you in…' : 'Clocking you out…')
+        setBusy(kind === 'in' ? t('clk.clockingIn') : t('clk.clockingOut'))
         const res =
           kind === 'in'
             ? await supabase.rpc('clock_in', { ...args, p_selfie_path: path })
@@ -87,18 +89,18 @@ export function ClockPage() {
         if (res.error) throw new Error(res.error.message)
         const rec = res.data as Attendance
         const at = timeIn(tz, kind === 'in' ? rec.clock_in_at : rec.clock_out_at)
-        const via = rec.in_method === 'qr' || qr ? 'office QR' : 'location'
+        const via = rec.in_method === 'qr' || qr ? t('via.qr') : t('via.location')
         if (kind === 'in') {
           setMsg(
             rec.is_late
-              ? { tone: 'bad', text: `Clocked in at ${at} by ${via}. That's after your shift start, so it's marked late.` }
-              : { tone: 'ok', text: `Clocked in at ${at} by ${via}. Have a good day.` },
+              ? { tone: 'bad', text: t('clk.lateIn', { time: at, via }) }
+              : { tone: 'ok', text: t('clk.okIn', { time: at, via }) },
           )
           setSelfie(null)
           setSelfiePath(null)
         } else {
           const h = hoursBetween(rec.clock_in_at, rec.clock_out_at)
-          setMsg({ tone: 'ok', text: `Clocked out at ${at}. You worked ${h?.toFixed(1)} hours today.` })
+          setMsg({ tone: 'ok', text: t('clk.okOut', { time: at, hours: h?.toFixed(1) ?? '0' }) })
         }
         await reload()
       } catch (e) {
@@ -108,7 +110,7 @@ export function ClockPage() {
         setBusy(null)
       }
     },
-    [selfie, selfiePath, company.id, userId, today, tz, reload],
+    [selfie, selfiePath, company.id, userId, today, tz, reload, t],
   )
 
   const onScan = useCallback(
@@ -121,7 +123,7 @@ export function ClockPage() {
   )
 
   async function accept() {
-    setBusy('Saving…')
+    setBusy(t('clk.saving'))
     const { error } = await supabase.rpc('accept_privacy_notice')
     setBusy(null)
     if (error) setMsg({ tone: 'bad', text: friendly(error).text })
@@ -140,63 +142,63 @@ export function ClockPage() {
         <div className="row between">
           <div>
             <div className="label">{now.toLocaleDateString('en-IN', { timeZone: tz, weekday: 'long', day: 'numeric', month: 'long' })}</div>
-            <h1 className="h-hello">Hi {firstName}</h1>
+            <h1 className="h-hello">{t('clk.hi', { name: firstName })}</h1>
             <div className="small muted">
-              {shift ? <>{shift.name} shift · <span className="mono">{hm(shift.start_time)}–{hm(shift.end_time)}</span></> : 'No shift assigned yet'}
+              {shift ? <>{t('clk.shift', { name: shift.name })} · <span className="mono">{hm(shift.start_time)}–{hm(shift.end_time)}</span></> : t('clk.noShift')}
             </div>
           </div>
           <div className="clock num">{timeIn(tz, now.toISOString())}</div>
         </div>
         <div>
-          {state === 'in' && <Pill tone={open!.is_late ? 'late' : 'ok'}>{open!.is_late ? 'Clocked in late' : 'Clocked in'} at {timeIn(tz, open!.clock_in_at)}</Pill>}
-          {state === 'done' && <Pill tone="off">Day complete</Pill>}
-          {state === 'out' && <Pill tone="off">Not clocked in</Pill>}
+          {state === 'in' && <Pill tone={open!.is_late ? 'late' : 'ok'}>{t(open!.is_late ? 'clk.lateAt' : 'clk.inAt', { time: timeIn(tz, open!.clock_in_at) })}</Pill>}
+          {state === 'done' && <Pill tone="off">{t('clk.dayDone')}</Pill>}
+          {state === 'out' && <Pill tone="off">{t('clk.notIn')}</Pill>}
         </div>
       </section>
 
       {!profile.consented_at ? (
         <section className="panel">
-          <h2>Before you clock in</h2>
+          <h2>{t('clk.beforeTitle')}</h2>
           <ul className="notice-list">
-            <li>HereNow checks your location only at the moment you clock in or out. It does not track you during the day.</li>
-            <li>Your check-in selfie is visible to you and to the admins at {company.name}.</li>
-            <li>Your records are used for attendance and payroll at {company.name}.</li>
+            <li>{t('clk.notice1')}</li>
+            <li>{t('clk.notice2', { company: company.name })}</li>
+            <li>{t('clk.notice3', { company: company.name })}</li>
           </ul>
-          <button className="btn primary big" onClick={accept} disabled={!!busy}>I understand</button>
+          <button className="btn primary big" onClick={accept} disabled={!!busy}>{t('clk.understand')}</button>
           {msg && <Note tone={msg.tone}>{msg.text}</Note>}
         </section>
       ) : scanFor ? (
         <section className="panel">
-          <h2>Scan the office QR code</h2>
-          <p className="small muted">Point your camera at the QR screen at reception.</p>
+          <h2>{t('clk.scanTitle')}</h2>
+          <p className="small muted">{t('clk.scanHint')}</p>
           <QrScanner onResult={onScan} onCancel={() => setScanFor(null)} />
         </section>
       ) : state === 'done' ? (
         <section className="panel">
-          <h2>All done for today</h2>
+          <h2>{t('clk.doneTitle')}</h2>
           <p className="muted">
-            You worked {hoursBetween(doneToday!.clock_in_at, doneToday!.clock_out_at)?.toFixed(1)} hours, from {timeIn(tz, doneToday!.clock_in_at)} to {timeIn(tz, doneToday!.clock_out_at)}.
+            {t('clk.doneBody', { hours: hoursBetween(doneToday!.clock_in_at, doneToday!.clock_out_at)?.toFixed(1) ?? '0', from: timeIn(tz, doneToday!.clock_in_at), to: timeIn(tz, doneToday!.clock_out_at) })}
           </p>
           {msg && <Note tone={msg.tone}>{msg.text}</Note>}
         </section>
       ) : (
         <section className="panel">
           {data!.offices.length === 0 && (
-            <Note tone="info">Your company hasn't added an office location yet, so clocking in won't work until an admin sets one up.</Note>
+            <Note tone="info">{t('clk.noOffice')}</Note>
           )}
           {state === 'out' && (
             <div className="step">
-              <div className="label">Step 1 · Selfie</div>
+              <div className="label">{t('clk.step1')}</div>
               <SelfieCapture onCapture={(b) => { setSelfie(b); setSelfiePath(null) }} />
             </div>
           )}
           <div className="step">
-            {state === 'out' && <div className="label">Step 2 · Confirm you're at work</div>}
+            {state === 'out' && <div className="label">{t('clk.step2')}</div>}
             <button className="btn primary big" disabled={!!busy || (state === 'out' && !selfie)} onClick={() => clock(state === 'out' ? 'in' : 'out')}>
-              {busy ?? (state === 'out' ? 'Clock in with my location' : 'Clock out with my location')}
+              {busy ?? (state === 'out' ? t('clk.inGps') : t('clk.outGps'))}
             </button>
             <button className="btn" disabled={!!busy || (state === 'out' && !selfie)} onClick={() => setScanFor(state === 'out' ? 'in' : 'out')}>
-              Scan office QR instead
+              {t('clk.useQr')}
             </button>
           </div>
           {msg && <Note tone={msg.tone}>{msg.text}</Note>}
@@ -210,6 +212,7 @@ export function ClockPage() {
 }
 
 function FenceView({ distance, radius, name, accuracy }: { distance: number; radius: number; name: string; accuracy: number }) {
+  const t = useT()
   const inside = distance <= radius
   const R = 70
   // Inside: true to scale. Outside: pinned just past the ring so it stays visible.
@@ -227,10 +230,10 @@ function FenceView({ distance, radius, name, accuracy }: { distance: number; rad
       <div>
         <div className="label">{name}</div>
         <div className="fence-status" style={{ color: inside ? 'var(--accent)' : 'var(--bad)' }}>
-          {inside ? 'Inside the zone' : 'Outside the zone'}
+          {t(inside ? 'fence.inside' : 'fence.outside')}
         </div>
         <div className="small muted">
-          <span className="num">{Math.round(distance)} m</span> away · zone <span className="num">{radius} m</span> · GPS ±<span className="num">{Math.round(accuracy)} m</span>
+          <span className="num">{t('fence.detail', { d: Math.round(distance), r: radius, a: Math.round(accuracy) })}</span>
         </div>
       </div>
     </div>

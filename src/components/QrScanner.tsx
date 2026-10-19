@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import jsQR from 'jsqr'
+import { useT } from '../lib/i18n'
 
 interface Props {
   onResult: (code: string) => void
@@ -12,6 +13,7 @@ interface Detector {
 
 // Scans the reception QR with the back camera. Typing the 6-character code also works.
 export function QrScanner({ onResult, onCancel }: Props) {
+  const t = useT()
   const video = useRef<HTMLVideoElement>(null)
   const [typed, setTyped] = useState('')
   const [msg, setMsg] = useState<string | null>(null)
@@ -59,7 +61,7 @@ export function QrScanner({ onResult, onCancel }: Props) {
 
     ;(async () => {
       if (!navigator.mediaDevices?.getUserMedia) {
-        setMsg("This browser can't open the camera here. Type the code shown under the QR instead.")
+        setMsg(t('qr.noCamera'))
         return
       }
       try {
@@ -71,7 +73,7 @@ export function QrScanner({ onResult, onCancel }: Props) {
         }
         raf = requestAnimationFrame(tick)
       } catch {
-        setMsg('Camera access is blocked. Type the code shown under the QR instead.')
+        setMsg(t('qr.blocked'))
       }
     })()
 
@@ -80,6 +82,7 @@ export function QrScanner({ onResult, onCancel }: Props) {
       cancelAnimationFrame(raf)
       stream?.getTracks().forEach((t) => t.stop())
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [onResult])
 
   return (
@@ -100,13 +103,13 @@ export function QrScanner({ onResult, onCancel }: Props) {
           id="qr-code-typed"
           className="mono code-input"
           maxLength={6}
-          placeholder="Or type code"
+          placeholder={t('qr.typePh')}
           aria-label="Office code"
           value={typed}
           onChange={(e) => setTyped(e.target.value.toUpperCase())}
         />
-        <button className="btn primary" type="submit" disabled={typed.trim().length < 6}>Use code</button>
-        <button className="btn" type="button" onClick={onCancel}>Cancel</button>
+        <button className="btn primary" type="submit" disabled={typed.trim().length < 6}>{t('qr.use')}</button>
+        <button className="btn" type="button" onClick={onCancel}>{t('cancel')}</button>
       </form>
     </div>
   )

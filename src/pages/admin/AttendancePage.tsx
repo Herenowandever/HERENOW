@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
-import { supabase, ATTENDANCE_COLS, PROFILE_COLS, type Attendance, type Profile, type Shift } from '../../supabase'
+import { supabase, ATTENDANCE_COLS, PROFILE_COLS, METHOD_LABEL, type Attendance, type Profile, type Shift } from '../../supabase'
 import { useMember } from '../../lib/session'
 import { useAsync, must } from '../../lib/useAsync'
 import { dateIn, timeIn, hm, prettyDate, localToIso } from '../../lib/time'
@@ -27,7 +27,7 @@ export function AttendancePage() {
       supabase.from('attendance').select(ATTENDANCE_COLS).eq('work_date', day),
     ])
     const records = must(att) as Attendance[]
-    const paths = records.map((r) => r.selfie_path).filter(Boolean) as string[]
+    const paths = [...new Set(records.flatMap((r) => [r.selfie_path, r.group_photo_path]).filter(Boolean) as string[])]
     const urls: Record<string, string> = {}
     if (paths.length) {
       const { data: signed } = await supabase.storage.from('selfies').createSignedUrls(paths, 3600)
@@ -93,14 +93,19 @@ export function AttendancePage() {
             {rows.map(({ p, r, sh, tone, label }) => (
               <div key={p.id} className="person-wrap">
                 <div className="person">
-                  <Avatar name={p.full_name} src={r?.selfie_path ? data!.urls[r.selfie_path] : null} />
+                  {r?.group_photo_path && !r.selfie_path && data!.urls[r.group_photo_path] ? (
+                    <a href={data!.urls[r.group_photo_path]} target="_blank" rel="noreferrer" title="Open group photo"><Avatar name={p.full_name} src={data!.urls[r.group_photo_path]} /></a>
+                  ) : (
+                    <Avatar name={p.full_name} src={r?.selfie_path ? data!.urls[r.selfie_path] : null} />
+                  )}
                   <div className="minw0">
                     <div>{p.full_name}{p.role === 'admin' && <span className="muted small"> · admin</span>}</div>
                     <div className="meta">
                       {sh ? <>{sh.name} <span className="mono">{hm(sh.start_time)}</span></> : 'No shift'}
-                      {r && <> · in <span className="mono">{timeIn(tz, r.clock_in_at)}</span> {r.in_method.toUpperCase()}</>}
+                      {r && <> · in <span className="mono">{timeIn(tz, r.clock_in_at)}</span> {METHOD_LABEL[r.in_method] ?? r.in_method}</>}
                       {r && r.in_distance_m != null && <> · {Math.round(r.in_distance_m)} m</>}
                       {r?.clock_out_at && <> · out <span className="mono">{timeIn(tz, r.clock_out_at)}</span></>}
+                      {r?.day_status === 'half' && <> · half day</>}
                       {r?.edited_by && <> · edited</>}
                     </div>
                   </div>
@@ -124,6 +129,7 @@ export function AttendancePage() {
 function EditTimes({ rec, tz, onDone }: { rec: Attendance; tz: string; onDone: () => void }) {
   const [inT, setIn] = useState(timeIn(tz, rec.clock_in_at))
   const [outT, setOut] = useState(rec.clock_out_at ? timeIn(tz, rec.clock_out_at) : '')
+  const [dayStatus, setDayStatus] = useState<string>(rec.day_status ?? '')
   const [err, setErr] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
 
@@ -137,7 +143,11 @@ function EditTimes({ rec, tz, onDone }: { rec: Attendance; tz: string; onDone: (
       // A clock-out earlier than clock-in means the shift ran past midnight.
       if (outIso <= inIso) outIso = new Date(new Date(outIso).getTime() + 86400000).toISOString()
     }
-    const { error } = await supabase.rpc('admin_edit_attendance', { p_id: rec.id, p_clock_in: inIso, p_clock_out: outIso })
+    const { error: e1 } = await supabase.rpc('admin_edit_attendance', { p_id: rec.id, p_clock_in: inIso, p_clock_out: outIso })
+    const { error: e2 } = e1 || dayStatus === (rec.day_status ?? '')
+      ? { error: null }
+      : await supabase.rpc('set_day_status', { p_id: rec.id, p_status: dayStatus || null })
+    const error = e1 ?? e2
     setBusy(false)
     if (error) setErr(friendly(error).text)
     else onDone()
@@ -147,7 +157,14 @@ function EditTimes({ rec, tz, onDone }: { rec: Attendance; tz: string; onDone: (
     <div className="edit-row">
       <label className="field">Clock in<input id={`in-${rec.id}`} type="time" value={inT} onChange={(e) => setIn(e.target.value)} /></label>
       <label className="field">Clock out<input id={`out-${rec.id}`} type="time" value={outT} onChange={(e) => setOut(e.target.value)} /></label>
-      <button className="btn primary" onClick={save} disabled={busy || !inT}>Save times</button>
+      <label className="field">Counts as
+        <select id={`ds-${rec.id}`} value={dayStatus} onChange={(e) => setDayStatus(e.target.value)}>
+          <option value="">Work it out from hours</option>
+          <option value="full">Full day</option>
+          <option value="half">Half day</option>
+        </select>
+      </label>
+      <button className="btn primary" onClick={save} disabled={busy || !inT}>Save</button>
       {err && <Note tone="bad">{err}</Note>}
     </div>
   )

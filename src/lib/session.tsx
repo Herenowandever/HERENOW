@@ -4,6 +4,7 @@ import { supabase, PROFILE_COLS, type Company, type Profile } from '../supabase'
 
 interface Ctx {
   loading: boolean
+  dbError: string | null
   session: Session | null
   profile: Profile | null
   company: Company | null
@@ -18,6 +19,7 @@ export function SessionProvider({ children }: { children: ReactNode }) {
   const [profile, setProfile] = useState<Profile | null>(null)
   const [company, setCompany] = useState<Company | null>(null)
   const [loading, setLoading] = useState(true)
+  const [dbError, setDbError] = useState<string | null>(null)
 
   const load = useCallback(async (s: Session | null) => {
     setSession(s)
@@ -27,7 +29,14 @@ export function SessionProvider({ children }: { children: ReactNode }) {
       setLoading(false)
       return
     }
-    const { data: p } = await supabase.from('profiles').select(PROFILE_COLS).eq('id', s.user.id).maybeSingle()
+    const { data: p, error } = await supabase.from('profiles').select(PROFILE_COLS).eq('id', s.user.id).maybeSingle()
+    if (error) {
+      // Usually means a newer database update hasn't been run yet. Don't send the person to onboarding.
+      setDbError(error.message)
+      setLoading(false)
+      return
+    }
+    setDbError(null)
     setProfile((p as Profile) ?? null)
     if (p) {
       const { data: c } = await supabase.from('companies').select('id, name, timezone, join_code').eq('id', (p as Profile).company_id).maybeSingle()
@@ -60,7 +69,7 @@ export function SessionProvider({ children }: { children: ReactNode }) {
   }, [])
 
   return (
-    <SessionContext.Provider value={{ loading, session, profile, company, refresh, signOut }}>{children}</SessionContext.Provider>
+    <SessionContext.Provider value={{ loading, dbError, session, profile, company, refresh, signOut }}>{children}</SessionContext.Provider>
   )
 }
 

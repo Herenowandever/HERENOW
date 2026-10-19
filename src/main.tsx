@@ -3,6 +3,7 @@ import { createRoot } from 'react-dom/client'
 import './styles.css'
 import { App } from './App'
 import { SessionProvider } from './lib/session'
+import { LangProvider } from './lib/i18n'
 
 // Shows the error on screen instead of a blank page, so problems are easy to report.
 class ErrorBoundary extends Component<{ children: ReactNode }, { error: Error | null }> {
@@ -28,9 +29,11 @@ class ErrorBoundary extends Component<{ children: ReactNode }, { error: Error | 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
     <ErrorBoundary>
-      <SessionProvider>
-        <App />
-      </SessionProvider>
+      <LangProvider>
+        <SessionProvider>
+          <App />
+        </SessionProvider>
+      </LangProvider>
     </ErrorBoundary>
   </StrictMode>,
 )

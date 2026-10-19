@@ -1,23 +1,37 @@
 import { useEffect, useRef, useState } from 'react'
+import { useT } from '../lib/i18n'
 
 interface Props {
   onCapture: (blob: Blob | null) => void
+  /** 'user' for a selfie, 'environment' for a group photo with the back camera. */
+  facing?: 'user' | 'environment'
 }
 
-// Live front-camera selfie. Falls back to the phone's camera picker if live video isn't available.
-export function SelfieCapture({ onCapture }: Props) {
+// Live camera photo. Falls back to the phone's camera picker if live video isn't available.
+export function SelfieCapture({ onCapture, facing = 'user' }: Props) {
+  const t = useT()
   const video = useRef<HTMLVideoElement>(null)
   const stream = useRef<MediaStream | null>(null)
   const [mode, setMode] = useState<'idle' | 'live' | 'done' | 'fallback'>('idle')
   const [preview, setPreview] = useState<string | null>(null)
   const [msg, setMsg] = useState<string | null>(null)
   const [ready, setReady] = useState(false)
+  const selfie = facing === 'user'
+  const size = selfie ? 480 : 960
 
   const stop = () => {
-    stream.current?.getTracks().forEach((t) => t.stop())
+    stream.current?.getTracks().forEach((tr) => tr.stop())
     stream.current = null
   }
   useEffect(() => stop, [])
+  // Attach the camera once the <video> element exists.
+  useEffect(() => {
+    const v = video.current
+    if (mode === 'live' && v && stream.current && v.srcObject !== stream.current) {
+      v.srcObject = stream.current
+      v.play().catch(() => {})
+    }
+  }, [mode])
   useEffect(() => () => { if (preview) URL.revokeObjectURL(preview) }, [preview])
 
   async function start() {
@@ -27,18 +41,12 @@ export function SelfieCapture({ onCapture }: Props) {
       return
     }
     try {
-      stream.current = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user', width: { ideal: 720 } }, audio: false })
+      stream.current = await navigator.mediaDevices.getUserMedia({ video: { facingMode: facing, width: { ideal: 1280 } }, audio: false })
       setReady(false)
       setMode('live')
-      requestAnimationFrame(() => {
-        if (video.current && stream.current) {
-          video.current.srcObject = stream.current
-          video.current.play().catch(() => {})
-        }
-      })
     } catch (e) {
       const denied = e instanceof DOMException && (e.name === 'NotAllowedError' || e.name === 'SecurityError')
-      setMsg(denied ? 'Camera access is blocked. Allow it in your browser settings, or use your camera app below.' : null)
+      setMsg(denied ? t('cam.blocked') : null)
       setMode('fallback')
     }
   }
@@ -50,22 +58,29 @@ export function SelfieCapture({ onCapture }: Props) {
     onCapture(blob)
   }
 
+  // Selfies are cropped square; group photos keep their shape.
+  function draw(src: CanvasImageSource, w: number, h: number, mirror: boolean) {
+    const c = document.createElement('canvas')
+    const ctx = c.getContext('2d')!
+    if (selfie) {
+      const k = Math.min(w, h)
+      c.width = c.height = size
+      if (mirror) { ctx.translate(size, 0); ctx.scale(-1, 1) }
+      ctx.drawImage(src, (w - k) / 2, (h - k) / 2, k, k, 0, 0, size, size)
+    } else {
+      const scale = Math.min(1, size / Math.max(w, h))
+      c.width = Math.round(w * scale)
+      c.height = Math.round(h * scale)
+      ctx.drawImage(src, 0, 0, c.width, c.height)
+    }
+    c.toBlob((b) => finish(b), 'image/jpeg', 0.8)
+  }
+
   function snap() {
     const v = video.current
     if (!v || !v.videoWidth) return
-    const size = Math.min(v.videoWidth, v.videoHeight)
-    const out = 480
-    const c = document.createElement('canvas')
-    c.width = c.height = out
-    const ctx = c.getContext('2d')!
-    // Mirror so the saved photo matches what the person saw.
-    ctx.translate(out, 0)
-    ctx.scale(-1, 1)
-    ctx.drawImage(v, (v.videoWidth - size) / 2, (v.videoHeight - size) / 2, size, size, 0, 0, out, out)
-    c.toBlob((b) => {
-      stop()
-      finish(b)
-    }, 'image/jpeg', 0.8)
+    draw(v, v.videoWidth, v.videoHeight, selfie)
+    stop()
   }
 
   function fromFile(f: File | undefined) {
@@ -73,16 +88,12 @@ export function SelfieCapture({ onCapture }: Props) {
     const img = new Image()
     const url = URL.createObjectURL(f)
     img.onload = () => {
-      const size = Math.min(img.width, img.height)
-      const c = document.createElement('canvas')
-      c.width = c.height = 480
-      c.getContext('2d')!.drawImage(img, (img.width - size) / 2, (img.height - size) / 2, size, size, 0, 0, 480, 480)
+      draw(img, img.width, img.height, false)
       URL.revokeObjectURL(url)
-      c.toBlob((b) => finish(b), 'image/jpeg', 0.8)
     }
     img.onerror = () => {
       URL.revokeObjectURL(url)
-      setMsg("That photo couldn't be read. Try taking it again.")
+      setMsg(t('cam.unreadable'))
     }
     img.src = url
   }
@@ -91,25 +102,25 @@ export function SelfieCapture({ onCapture }: Props) {
     <div className="selfie">
       {mode === 'live' && (
         <>
-          <video ref={video} className="selfie-video" playsInline muted aria-label="Front camera preview"
+          <video ref={video} className={selfie ? 'selfie-video' : 'group-video'} playsInline muted aria-label={t('cam.alt')}
             onLoadedData={() => setReady(true)} onPlaying={() => setReady(true)} />
           <div className="row">
-            <button className="btn primary" onClick={snap} disabled={!ready}>{ready ? 'Take photo' : 'Starting camera…'}</button>
-            <button className="btn" onClick={() => { stop(); setMode('idle') }}>Cancel</button>
+            <button className="btn primary" onClick={snap} disabled={!ready}>{ready ? t('cam.takePhoto') : t('cam.starting')}</button>
+            <button className="btn" onClick={() => { stop(); setMode('idle') }}>{t('cancel')}</button>
           </div>
         </>
       )}
       {mode === 'done' && preview && (
         <div className="row">
-          <img src={preview} className="selfie-thumb" alt="Your check-in selfie" />
-          <button className="btn" onClick={() => { finish(null); start() }}>Retake</button>
+          <img src={preview} className={selfie ? 'selfie-thumb' : 'group-thumb'} alt={t('cam.alt')} />
+          <button className="btn" onClick={() => { finish(null); start() }}>{t('cam.retake')}</button>
         </div>
       )}
-      {mode === 'idle' && <button className="btn" onClick={start}>Take selfie</button>}
+      {mode === 'idle' && <button className="btn" onClick={start}>{selfie ? t('cam.takeSelfie') : t('cam.groupPhoto')}</button>}
       {mode === 'fallback' && (
         <label className="btn file-btn">
-          Open camera
-          <input type="file" accept="image/*" capture="user" hidden onChange={(e) => fromFile(e.target.files?.[0])} />
+          {t('cam.open')}
+          <input type="file" accept="image/*" capture={facing} hidden onChange={(e) => fromFile(e.target.files?.[0])} />
         </label>
       )}
       {msg && <p className="small muted">{msg}</p>}

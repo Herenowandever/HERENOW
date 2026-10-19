@@ -1,6 +1,6 @@
 # HereNow
 
-Attendance for workplaces. Employees clock in from their phone with a **location check**, a **selfie**, and a **QR code backup**. Admins get a live attendance board, shift scheduling, office zones, and **monthly reports** they can export for payroll. Many companies can use one deployment; each company only ever sees its own data.
+Attendance for construction sites, field crews and small businesses. Employees clock in from their phone with a **location check**, a **selfie**, and a **QR code backup**. **Site supervisors** mark whole crews in and out with one group photo, including workers who don't have a phone. Admins get a live attendance board, shift scheduling, site zones, monthly reports and a **daily-wage sheet** for payroll. Works in **English, Hindi and Kannada**. Many companies can use one deployment; each company only ever sees its own data.
 
 Built with React + Vite (a web app that installs to the home screen) and Supabase (database, logins, photo storage).
 
@@ -12,8 +12,8 @@ Built with React + Vite (a web app that installs to the home screen) and Supabas
 
 1. Sign up at [supabase.com](https://supabase.com) and create a new project. Pick a region close to your users (for India, **Mumbai**).
 2. Open **SQL Editor → New query**, paste everything from `supabase/migrations/0001_herenow.sql`, and click **Run**.
-3. Do the same with `supabase/migrations/0002_selfie_storage.sql`.
-4. Go to **Authentication → URL Configuration** and set **Site URL** to the address where the app will live (for example `https://herenow.vercel.app`). You can update it after deploying.
+3. Do the same with `supabase/migrations/0002_selfie_storage.sql`, then `0003_crews_and_wages.sql`. Always run the files in number order; when an update adds a new file, run just that one.
+4. Go to **Authentication → URL Configuration** and set **Site URL** to the address where the app will live (for example `https://your-project.vercel.app`). You can update it after deploying.
 5. Go to **Project Settings → API** and copy the **Project URL** and the **anon public** key.
 
 ### 2. Deploy the app on Vercel
@@ -48,6 +48,10 @@ Employees can install the app from their phone browser: on Android, use **Add to
 | Shifts | Each shift has start and end times plus a grace period. Clocking in after the grace period marks the day as late. Night shifts that cross midnight are supported. |
 | Attendance board | Live list of who is on site, late or not in. Admins can correct times, for example when someone forgets to clock out. |
 | Monthly report | Days present, late days, QR check-ins, missing clock-outs, hours and overtime per person. Export as CSV for Excel or payroll software. |
+| Site supervisors | A supervisor is assigned to one site. On the **Crew** page they tick the workers present, take a group photo, and mark them in or out together. The database checks the supervisor is at that site (GPS or the site QR). |
+| Workers without a phone | Admins add them on the Team page. They never log in; their supervisor marks them. |
+| Daily wages | Set a daily wage and, optionally, an overtime rate per person. The **Wage sheet** report counts full days, half days (less than half a shift) and overtime, and exports to CSV. Admins can mark any day as full or half on the Attendance page. |
+| Languages | English, Hindi and Kannada for sign-in, clock-in, history and crew screens. Admin pages are in English. Have a native speaker check the wording before launch. |
 | Privacy notice | Shown before an employee's first clock-in, and recorded when they accept it. |
 | Multiple companies | Every table is protected by row-level security. Records are written only through database functions that check who is asking. |
 

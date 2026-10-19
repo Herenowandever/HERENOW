@@ -4,10 +4,13 @@ import { useAsync, must } from '../../lib/useAsync'
 import { prettyDate, timeIn, hoursBetween } from '../../lib/time'
 import { friendly } from '../../lib/errors'
 import { Loading, Note, Pill } from '../../components/ui'
+import { useT } from '../../lib/i18n'
+import { METHOD_LABEL } from '../../supabase'
 
 export function HistoryPage() {
   const { userId, company } = useMember()
   const tz = company.timezone
+  const t = useT()
   const { data, loading, error } = useAsync(
     async () =>
       must(
@@ -25,17 +28,17 @@ export function HistoryPage() {
   return (
     <div className="stack">
       <section className="panel">
-        <h2>My attendance</h2>
+        <h2>{t('his.title')}</h2>
         <p className="small muted">
-          Last {rows.length} days on record · <span className="num">{hours.toFixed(1)}</span> hours · <span className="num">{late}</span> late
+          {t('his.summary', { n: rows.length, hours: hours.toFixed(1), late })}
         </p>
         {rows.length === 0 ? (
-          <p className="muted">No records yet. Your first clock-in will show up here.</p>
+          <p className="muted">{t('his.empty')}</p>
         ) : (
           <div className="tablewrap">
             <table>
               <thead>
-                <tr><th>Date</th><th>In</th><th>Out</th><th className="r">Hours</th><th>Status</th></tr>
+                <tr><th>{t('col.date')}</th><th>{t('col.in')}</th><th>{t('col.out')}</th><th className="r">{t('col.hours')}</th><th>{t('col.status')}</th></tr>
               </thead>
               <tbody>
                 {rows.map((r) => {
@@ -43,10 +46,10 @@ export function HistoryPage() {
                   return (
                     <tr key={r.id}>
                       <td>{prettyDate(r.work_date)}</td>
-                      <td className="num">{timeIn(tz, r.clock_in_at)} <span className="muted small">{r.in_method.toUpperCase()}</span></td>
+                      <td className="num">{timeIn(tz, r.clock_in_at)} <span className="muted small">{METHOD_LABEL[r.in_method] ?? r.in_method}</span></td>
                       <td className="num">{timeIn(tz, r.clock_out_at)}</td>
                       <td className="r num">{h == null ? '—' : h.toFixed(1)}</td>
-                      <td>{r.is_late ? <Pill tone="late">Late</Pill> : <Pill tone="ok">On time</Pill>}</td>
+                      <td>{r.is_late ? <Pill tone="late">{t('st.late')}</Pill> : <Pill tone="ok">{t('st.onTime')}</Pill>}</td>
                     </tr>
                   )
                 })}

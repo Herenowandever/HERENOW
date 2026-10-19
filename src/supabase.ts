@@ -46,7 +46,7 @@ export const supabase = createClient(baseUrl, isConfigured ? key : 'not-configur
   auth: { persistSession: true, autoRefreshToken: true },
 })
 
-export type Role = 'admin' | 'employee'
+export type Role = 'admin' | 'supervisor' | 'employee'
 
 export interface Profile {
   id: string
@@ -57,6 +57,10 @@ export interface Profile {
   shift_id: string | null
   active: boolean
   consented_at: string | null
+  has_login: boolean
+  office_id: string | null
+  daily_wage: number | null
+  ot_hourly_rate: number | null
 }
 
 export interface Company {
@@ -91,16 +95,23 @@ export interface Attendance {
   office_id: string | null
   clock_in_at: string
   clock_out_at: string | null
-  in_method: 'gps' | 'qr'
-  out_method: 'gps' | 'qr' | null
+  in_method: Method
+  out_method: Method | null
   in_distance_m: number | null
   selfie_path: string | null
   shift_start: string | null
   shift_end: string | null
   is_late: boolean
   edited_by: string | null
+  marked_by: string | null
+  group_photo_path: string | null
+  day_status: 'full' | 'half' | null
 }
 
-export const PROFILE_COLS = 'id, company_id, full_name, job_title, role, shift_id, active, consented_at'
+export type Method = 'gps' | 'qr' | 'crew' | 'manual'
+export const METHOD_LABEL: Record<Method, string> = { gps: 'GPS', qr: 'QR', crew: 'CREW', manual: 'MANUAL' }
+
+export const PROFILE_COLS =
+  'id, company_id, full_name, job_title, role, shift_id, active, consented_at, has_login, office_id, daily_wage, ot_hourly_rate'
 export const ATTENDANCE_COLS =
-  'id, user_id, work_date, office_id, clock_in_at, clock_out_at, in_method, out_method, in_distance_m, selfie_path, shift_start, shift_end, is_late, edited_by'
+  'id, user_id, work_date, office_id, clock_in_at, clock_out_at, in_method, out_method, in_distance_m, selfie_path, shift_start, shift_end, is_late, edited_by, marked_by, group_photo_path, day_status'

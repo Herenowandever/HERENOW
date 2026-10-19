@@ -1,25 +1,25 @@
 import type { ReactNode } from 'react'
 import { useSession } from '../lib/session'
+import { useT, LangSwitch } from '../lib/i18n'
+import type { Role } from '../supabase'
 
-interface NavItem {
-  path: string
-  label: string
+const NAV: Record<Role, string[]> = {
+  employee: ['/', '/history'],
+  supervisor: ['/', '/crew', '/history'],
+  admin: ['/', '/crew', '/admin', '/admin/team', '/admin/shifts', '/admin/offices', '/admin/reports', '/admin/settings'],
 }
 
-const EMPLOYEE_NAV: NavItem[] = [
-  { path: '/', label: 'Clock in' },
-  { path: '/history', label: 'My history' },
-]
-
-const ADMIN_NAV: NavItem[] = [
-  { path: '/', label: 'Clock in' },
-  { path: '/admin', label: 'Attendance' },
-  { path: '/admin/team', label: 'Team' },
-  { path: '/admin/shifts', label: 'Shifts' },
-  { path: '/admin/offices', label: 'Offices & QR' },
-  { path: '/admin/reports', label: 'Reports' },
-  { path: '/admin/settings', label: 'Company' },
-]
+const LABEL: Record<string, string> = {
+  '/': 'nav.clock',
+  '/history': 'nav.history',
+  '/crew': 'nav.crew',
+  '/admin': 'nav.attendance',
+  '/admin/team': 'nav.team',
+  '/admin/shifts': 'nav.shifts',
+  '/admin/offices': 'nav.offices',
+  '/admin/reports': 'nav.reports',
+  '/admin/settings': 'nav.company',
+}
 
 export function Brand({ sub }: { sub?: string }) {
   return (
@@ -35,8 +35,9 @@ export function Brand({ sub }: { sub?: string }) {
 
 export function Layout({ path, children }: { path: string; children: ReactNode }) {
   const { profile, company, signOut } = useSession()
-  const nav = profile?.role === 'admin' ? ADMIN_NAV : EMPLOYEE_NAV
-  const active = (p: string) => (p === '/' ? path === '/' : p === '/admin' ? path === '/admin' : path.startsWith(p))
+  const t = useT()
+  const nav = NAV[profile?.role ?? 'employee']
+  const active = (p: string) => (p === '/' || p === '/admin' ? path === p : path.startsWith(p))
 
   return (
     <div className="shell">
@@ -44,13 +45,14 @@ export function Layout({ path, children }: { path: string; children: ReactNode }
         <Brand sub={company?.name} />
         <div className="row">
           <span className="small muted who">{profile?.full_name}</span>
-          <button className="btn ghost" onClick={signOut}>Sign out</button>
+          <LangSwitch />
+          <button className="btn ghost" onClick={signOut}>{t('signOut')}</button>
         </div>
       </header>
       <nav className="nav" aria-label="Main">
-        {nav.map((n) => (
-          <a key={n.path} href={`#${n.path}`} aria-current={active(n.path) ? 'page' : undefined}>
-            {n.label}
+        {nav.map((p) => (
+          <a key={p} href={`#${p}`} aria-current={active(p) ? 'page' : undefined}>
+            {t(LABEL[p])}
           </a>
         ))}
       </nav>

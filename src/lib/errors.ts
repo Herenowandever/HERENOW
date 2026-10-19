@@ -1,56 +1,41 @@
-// Turns database and device error codes into sentences people can act on.
+// Turns database and device error codes into sentences people can act on, in the chosen language.
+import { has, tr } from './i18n'
 
 export interface Friendly {
   text: string
   suggestQr?: boolean
 }
 
-export function friendly(err: unknown): Friendly {
-  const raw = err instanceof Error ? err.message : typeof err === 'object' && err && 'message' in err ? String((err as { message: unknown }).message) : String(err)
-  const [code, ...parts] = raw.split('|')
+const QR_HELPS = new Set(['OUTSIDE_ZONE', 'WEAK_GPS', 'GEO_DENIED', 'GEO_FAILED', 'NO_GEO', 'NO_LOCATION'])
+const ALIASES: Record<string, string> = { NO_GEO: 'GEO_FAILED', NO_LOCATION: 'GEO_FAILED', 'Invalid login credentials': 'LOGIN' }
 
-  switch (code.trim()) {
-    case 'OUTSIDE_ZONE':
-      return { text: `You're ${parts[0]} m from ${parts[2]}. Move within ${parts[1]} m and try again, or scan the office QR code.`, suggestQr: true }
-    case 'WEAK_GPS':
-      return { text: `Your location is only accurate to about ${parts[0]} m right now. Step near a window and try again, or scan the office QR code.`, suggestQr: true }
-    case 'GEO_DENIED':
-      return { text: 'HereNow needs your location to clock you in. Allow location for this site in your browser settings, or scan the office QR code.', suggestQr: true }
-    case 'GEO_FAILED':
-    case 'NO_GEO':
-    case 'NO_LOCATION':
-      return { text: "Your phone couldn't find your location. Try again outdoors or near a window, or scan the office QR code.", suggestQr: true }
-    case 'INVALID_QR':
-      return { text: "That isn't today's office code. Scan the QR screen at reception again." }
-    case 'NO_OFFICE':
-      return { text: 'Your company has not set up an office location yet. Ask your admin to add one.' }
-    case 'NEEDS_SELFIE':
-      return { text: 'Take a selfie first, then clock in.' }
-    case 'NEEDS_CONSENT':
-      return { text: 'Please read and accept the privacy notice first.' }
-    case 'ALREADY_IN':
-      return { text: "You're already clocked in." }
-    case 'ALREADY_DONE':
-      return { text: "You've already completed a shift today. Ask your admin if this needs correcting." }
-    case 'NOT_IN':
-      return { text: "You're not clocked in, so there's nothing to clock out of." }
-    case 'NOT_A_MEMBER':
-      return { text: 'Your account is not active in a company. Ask your admin for help.' }
-    case 'BAD_JOIN_CODE':
-      return { text: "That company code wasn't found. Check it with your admin; it's 8 letters and numbers." }
-    case 'ALREADY_IN_COMPANY':
-      return { text: 'This account already belongs to a company.' }
-    case 'ADMIN_ONLY':
-      return { text: 'Only company admins can do that.' }
-    case 'CANNOT_DEMOTE_SELF':
-      return { text: "You can't remove your own admin access. Ask another admin to do it." }
-    case 'BAD_TIMES':
-      return { text: 'Clock-out must be after clock-in.' }
-    case 'CAMERA_DENIED':
-      return { text: 'HereNow needs the camera for your check-in selfie. Allow camera access in your browser settings.' }
-    case 'Invalid login credentials':
-      return { text: 'That email and password do not match. Check them and try again.' }
-    default:
-      return { text: raw || 'Something went wrong. Check your connection and try again.' }
+// Admin-only codes that only appear in English admin screens.
+const ENGLISH_ONLY: Record<string, string> = {
+  BAD_REQUEST: 'That request was not valid. Reload the page and try again.',
+  BAD_ROLE: 'Choose admin, supervisor or employee.',
+  NOT_FOUND: 'That item no longer exists. Reload the page.',
+  TOO_MANY: 'Select up to 200 people at a time.',
+  CAMERA_DENIED: 'HereNow needs the camera. Allow camera access in your browser settings.',
+}
+
+export function friendly(err: unknown): Friendly {
+  const raw =
+    err instanceof Error
+      ? err.message
+      : typeof err === 'object' && err && 'message' in err
+        ? String((err as { message: unknown }).message)
+        : String(err)
+  const [first, ...parts] = raw.split('|')
+  const code = ALIASES[first.trim()] ?? first.trim()
+  const key = `err.${code}`
+  if (has(key)) {
+    const vars: Record<string, string> = {}
+    parts.forEach((p, i) => (vars[String(i)] = p))
+    return { text: tr(key, vars), suggestQr: QR_HELPS.has(first.trim()) }
   }
+  if (ENGLISH_ONLY[code]) return { text: ENGLISH_ONLY[code] }
+  if (/column .* does not exist|function .* does not exist|Could not find the function/i.test(raw)) {
+    return { text: 'The database needs an update. Run the newest file in supabase/migrations in the Supabase SQL editor, then reload.' }
+  }
+  return { text: raw || tr('err.GENERIC') }
 }

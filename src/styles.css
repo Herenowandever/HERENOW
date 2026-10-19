@@ -3,8 +3,8 @@
   --bg: #EEF2F0; --surface: #FFFFFF; --sunk: #E3E9E6; --line: #CFD9D4;
   --ink: #13201C; --muted: #5B6B65; --accent: #0E7458; --accent-ink: #FFFFFF; --accent-soft: #D6EDE4;
   --late: #A15C00; --late-soft: #FBEBD2; --bad: #B3261E; --bad-soft: #F8DEDB; --info-soft: #E3E9F2; --info: #2E4A73;
-  --f-display: "Bricolage Grotesque", ui-sans-serif, system-ui, sans-serif;
-  --f-body: "IBM Plex Sans", ui-sans-serif, system-ui, sans-serif;
+  --f-display: "Bricolage Grotesque", "Noto Sans Devanagari", "Noto Sans Kannada", ui-sans-serif, system-ui, sans-serif;
+  --f-body: "IBM Plex Sans", "Noto Sans Devanagari", "Noto Sans Kannada", ui-sans-serif, system-ui, sans-serif;
   --f-mono: "IBM Plex Mono", ui-monospace, Menlo, monospace;
   color-scheme: light;
 }
@@ -156,3 +156,33 @@ input[type="date"], input[type="month"] { width: auto; }
   .clock { font-size: 2rem; }
 }
 @media (prefers-reduced-motion: reduce) { * { scroll-behavior: auto; } }
+
+/* Language switch */
+.lang-switch { width: auto; min-height: 36px; padding: 6px 8px; font-size: 0.85rem; }
+
+/* Crew marking */
+.site-pick { flex: 0 1 220px; }
+.crew-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
+.crew-row {
+  display: grid; grid-template-columns: 22px 40px minmax(0, 1fr) auto; gap: 10px; align-items: center;
+  padding: 8px 10px; border: 1px solid var(--line); border-radius: 12px; cursor: pointer; background: var(--surface);
+}
+.crew-row.sel { border-color: var(--accent); background: var(--accent-soft); }
+.crew-row:has(input:disabled) { cursor: default; opacity: 0.7; }
+.crew-name { display: block; font-weight: 500; }
+.crew-row .meta { display: block; }
+.group-video { width: 100%; max-width: 480px; aspect-ratio: 4 / 3; object-fit: cover; border-radius: 14px; background: var(--sunk); }
+.group-thumb { width: 160px; max-width: 100%; aspect-ratio: 4 / 3; object-fit: cover; border-radius: 10px; border: 2px solid var(--accent); }
+.result-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 4px; font-size: 0.88rem; }
+.result-list li { display: flex; justify-content: space-between; gap: 10px; border-bottom: 1px dashed var(--line); padding: 4px 0; }
+
+/* Team */
+.member-details summary { cursor: pointer; color: var(--accent); font-weight: 600; font-size: 0.85rem; padding: 4px 0; }
+.member-details[open] summary { margin-bottom: 8px; }
+.report-tabs { max-width: 360px; }
+.stat .n.stat-money { font-size: clamp(1.2rem, 5vw, 1.9rem); overflow-wrap: anywhere; }
+
+@media (max-width: 560px) {
+  .crew-row { grid-template-columns: 22px 36px minmax(0, 1fr); }
+  .crew-row .pill { grid-column: 3; justify-self: start; }
+}
