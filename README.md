@@ -12,7 +12,7 @@ Built with React + Vite (a web app that installs to the home screen) and Supabas
 
 1. Sign up at [supabase.com](https://supabase.com) and create a new project. Pick a region close to your users (for India, **Mumbai**).
 2. Open **SQL Editor → New query**, paste everything from `supabase/migrations/0001_herenow.sql`, and click **Run**.
-3. Do the same with `supabase/migrations/0002_selfie_storage.sql`, then `0003_crews_and_wages.sql`. Always run the files in number order; when an update adds a new file, run just that one.
+3. Do the same with `supabase/migrations/0002_selfie_storage.sql`, then `0003_crews_and_wages.sql` and `0004_remove_member.sql`. Always run the files in number order; when an update adds a new file, run just that one.
 4. Go to **Authentication → URL Configuration** and set **Site URL** to the address where the app will live (for example `https://your-project.vercel.app`). You can update it after deploying.
 5. Go to **Project Settings → API** and copy the **Project URL** and the **anon public** key.
 

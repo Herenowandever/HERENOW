@@ -186,3 +186,6 @@ input[type="date"], input[type="month"] { width: auto; }
   .crew-row { grid-template-columns: 22px 36px minmax(0, 1fr); }
   .crew-row .pill { grid-column: 3; justify-self: start; }
 }
+.remove-btn { justify-self: start; color: var(--bad); }
+.removed-summary { cursor: pointer; font-weight: 600; }
+.person.office-like { grid-template-columns: 40px minmax(0, 1fr) auto; }

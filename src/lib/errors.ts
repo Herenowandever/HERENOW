@@ -15,6 +15,7 @@ const ENGLISH_ONLY: Record<string, string> = {
   BAD_ROLE: 'Choose admin, supervisor or employee.',
   NOT_FOUND: 'That item no longer exists. Reload the page.',
   TOO_MANY: 'Select up to 200 people at a time.',
+  CANNOT_REMOVE_SELF: "You can't remove yourself. Ask another admin to do it.",
   CAMERA_DENIED: 'HereNow needs the camera. Allow camera access in your browser settings.',
 }
 

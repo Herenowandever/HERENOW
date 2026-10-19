@@ -140,6 +140,7 @@ export function CrewPage() {
         <div>
           <h2>{t('crew.title', { site: siteName })}</h2>
           <div className="small muted">{t('crew.stats', counts)}</div>
+          {isAdmin && <a className="small" href="#/admin/team">Add or remove people on the Team page</a>}
         </div>
         {isAdmin && (
           <label className="field site-pick">{t('crew.site')}

@@ -48,7 +48,7 @@ export function App() {
           <h2>The database needs an update</h2>
           <p>
             This version of HereNow needs the newest database changes. In Supabase, open <strong>SQL Editor</strong>, paste the
-            contents of the newest file in <code>supabase/migrations</code> (for example <code>0003_crews_and_wages.sql</code>),
+            contents of the newest file in <code>supabase/migrations</code> (for example <code>0004_remove_member.sql</code>),
             and click <strong>Run</strong>. Then reload this page.
           </p>
           <p className="small muted mono break">{dbError}</p>

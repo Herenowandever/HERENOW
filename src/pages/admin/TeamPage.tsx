@@ -18,6 +18,7 @@ export function TeamPage() {
   const [copied, setCopied] = useState<string | null>(null)
   const [codeMsg, setCodeMsg] = useState<string | null>(null)
   const [confirmNew, setConfirmNew] = useState(false)
+  const [notice, setNotice] = useState<string | null>(null)
 
   const link = `${window.location.origin}/#/join?code=${company.join_code}`
 
@@ -62,21 +63,37 @@ export function TeamPage() {
 
       <section className="panel">
         <h2>People</h2>
+        {notice && <Note tone="ok">{notice}</Note>}
         {loading && !data ? <Loading /> : error ? <Note tone="bad">{friendly(error).text}</Note> : (
           <div className="people">
-            {data!.people.map((p) => (
-              <MemberRow key={p.id} p={p} shifts={data!.shifts} offices={data!.offices} isMe={p.id === userId} onSaved={reload} />
+            {data!.people.filter((p) => p.active).map((p) => (
+              <MemberRow key={p.id} p={p} shifts={data!.shifts} offices={data!.offices} isMe={p.id === userId} onSaved={reload}
+                onRemoved={(text) => { setNotice(text); reload() }} />
             ))}
           </div>
         )}
       </section>
+
+      {data && data.people.some((p) => !p.active) && (
+        <section className="panel">
+          <details>
+            <summary className="removed-summary">Removed people ({data.people.filter((p) => !p.active).length})</summary>
+            <p className="small muted">Their past attendance stays in reports and wage sheets. Restore someone to bring them back.</p>
+            <div className="people">
+              {data.people.filter((p) => !p.active).map((p) => <RemovedRow key={p.id} p={p} onRestored={reload} />)}
+            </div>
+          </details>
+        </section>
+      )}
 
       {data && <AddWorker shifts={data.shifts} offices={data.offices} onAdded={reload} />}
     </div>
   )
 }
 
-function MemberRow({ p, shifts, offices, isMe, onSaved }: { p: Profile; shifts: Shift[]; offices: Office[]; isMe: boolean; onSaved: () => void }) {
+function MemberRow({ p, shifts, offices, isMe, onSaved, onRemoved }: {
+  p: Profile; shifts: Shift[]; offices: Office[]; isMe: boolean; onSaved: () => void; onRemoved: (text: string) => void
+}) {
   const [name, setName] = useState(p.full_name)
   const [shift, setShift] = useState(p.shift_id ?? '')
   const [site, setSite] = useState(p.office_id ?? '')
@@ -84,7 +101,9 @@ function MemberRow({ p, shifts, offices, isMe, onSaved }: { p: Profile; shifts: 
   const [title, setTitle] = useState(p.job_title ?? '')
   const [wage, setWage] = useState(p.daily_wage != null ? String(p.daily_wage) : '')
   const [ot, setOt] = useState(p.ot_hourly_rate != null ? String(p.ot_hourly_rate) : '')
-  const [active, setActive] = useState(p.active)
+  const active = p.active
+  const [confirmRemove, setConfirmRemove] = useState(false)
+  const [removing, setRemoving] = useState(false)
   const [msg, setMsg] = useState<{ tone: 'ok' | 'bad'; text: string } | null>(null)
   const num = (v: string) => (v.trim() === '' ? null : Number(v))
   const dirty =
@@ -106,6 +125,16 @@ function MemberRow({ p, shifts, offices, isMe, onSaved }: { p: Profile; shifts: 
       setMsg({ tone: 'ok', text: 'Saved.' })
       onSaved()
     }
+  }
+
+  async function remove() {
+    setRemoving(true)
+    setMsg(null)
+    const { data: res, error } = await supabase.rpc('remove_member', { p_member: p.id })
+    setRemoving(false)
+    setConfirmRemove(false)
+    if (error) setMsg({ tone: 'bad', text: friendly(error).text })
+    else onRemoved(res === 'deleted' ? `${p.full_name} was deleted.` : `${p.full_name} was removed. Find them under Removed people to bring them back.`)
   }
 
   const siteName = offices.find((o) => o.id === p.office_id)?.name
@@ -152,15 +181,24 @@ function MemberRow({ p, shifts, offices, isMe, onSaved }: { p: Profile; shifts: 
           </label>
           <label className="field">Daily wage (₹)<input id={`wage-${p.id}`} inputMode="decimal" value={wage} placeholder="e.g. 800" onChange={(e) => setWage(e.target.value)} /></label>
           <label className="field">Overtime ₹/hour<input id={`ot-${p.id}`} inputMode="decimal" value={ot} placeholder="Auto" onChange={(e) => setOt(e.target.value)} /></label>
-          <label className="check">
-            <input id={`active-${p.id}`} type="checkbox" checked={active} disabled={isMe} onChange={(e) => setActive(e.target.checked)} />
-            Active
-          </label>
           <button className="btn primary" disabled={!dirty} onClick={save}>Save</button>
         </div>
         {role === 'supervisor' && <p className="small muted">Supervisors mark attendance for everyone at their site. Pick a site above.</p>}
         <p className="small muted">Overtime left blank is paid at the daily wage divided by shift hours.</p>
       </details>
+      {!isMe && !confirmRemove && (
+        <button className="btn ghost small-btn remove-btn" onClick={() => setConfirmRemove(true)}>Remove</button>
+      )}
+      {confirmRemove && (
+        <div className="msg bad">
+          Remove {p.full_name} from your team? They won't appear in Crew or be able to clock in. Their past attendance stays in
+          your reports.
+          <div className="row">
+            <button className="btn" onClick={remove} disabled={removing}>{removing ? 'Removing…' : 'Remove'}</button>
+            <button className="btn" onClick={() => setConfirmRemove(false)}>Keep</button>
+          </div>
+        </div>
+      )}
       {msg && <Note tone={msg.tone}>{msg.text}</Note>}
     </div>
   )
@@ -222,5 +260,27 @@ function AddWorker({ shifts, offices, onAdded }: { shifts: Shift[]; offices: Off
       {msg && <Note tone={msg.tone}>{msg.text}</Note>}
       <div><button className="btn primary">Add worker</button></div>
     </form>
+  )
+}
+
+function RemovedRow({ p, onRestored }: { p: Profile; onRestored: () => void }) {
+  const [err, setErr] = useState<string | null>(null)
+  async function restore() {
+    const { error } = await supabase.rpc('restore_member', { p_member: p.id })
+    if (error) setErr(friendly(error).text)
+    else onRestored()
+  }
+  return (
+    <div className="member inactive">
+      <div className="person office-like">
+        <Avatar name={p.full_name} />
+        <div className="minw0">
+          <div>{p.full_name}{!p.has_login && <span className="muted small"> · no phone</span>}</div>
+          <div className="meta">{p.job_title || ''}</div>
+        </div>
+        <button className="btn small-btn" onClick={restore}>Restore</button>
+      </div>
+      {err && <Note tone="bad">{err}</Note>}
+    </div>
   )
 }
