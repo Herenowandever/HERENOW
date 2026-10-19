@@ -82,10 +82,12 @@ end $$;
 ------------------------------------------------------------------------------
 
 drop policy if exists "read own profile, admins read team" on public.profiles;
+drop policy if exists "read own profile; admins and supervisors read their people" on public.profiles;
 create policy "read own profile; admins and supervisors read their people" on public.profiles
   for select using (company_id = public.my_company_id() and public.can_view_person(id) or id = auth.uid());
 
 drop policy if exists "read own attendance, admins read team" on public.attendance;
+drop policy if exists "read own attendance; admins and supervisors read their people" on public.attendance;
 create policy "read own attendance; admins and supervisors read their people" on public.attendance
   for select using (company_id = public.my_company_id() and public.can_view_person(user_id));
 
