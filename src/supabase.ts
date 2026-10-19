@@ -16,6 +16,9 @@ function checkConfig(): string | null {
     return `VITE_SUPABASE_URL should be a web address like https://abcdefgh.supabase.co, but it starts with "${url.slice(0, 12)}…". Check you didn't swap the two values.`
   }
   if (u.protocol !== 'https:' && u.hostname !== 'localhost') return 'VITE_SUPABASE_URL must start with https://'
+  if (u.hostname === window.location.hostname || /\.vercel\.app$|\.netlify\.app$|vercel\.com$/.test(u.hostname)) {
+    return `VITE_SUPABASE_URL is set to ${u.hostname}, which is a website address, not your Supabase project. Use the Project URL from Supabase → Project Settings → Data API; it ends in .supabase.co.`
+  }
   if (key.startsWith('http')) return 'VITE_SUPABASE_ANON_KEY contains a web address. It should be the long key, not the URL. Check you didn\'t swap the two values.'
   if (key.startsWith('sb_secret_') || /service_role/.test(atobSafe(key.split('.')[1] ?? ''))) {
     return 'VITE_SUPABASE_ANON_KEY is your secret service key. Replace it with the anon public (or Publishable) key, and keep the secret key private.'
