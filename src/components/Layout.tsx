@@ -27,7 +27,7 @@ export function Brand({ sub }: { sub?: string }) {
     <div className="brand">
       <div className="brand-mark" aria-hidden="true" />
       <div>
-        <div className="brand-name">Musterly</div>
+        <div className="brand-name">Ullara-Eni</div>
         {sub && <div className="brand-sub">{sub}</div>}
       </div>
     </div>

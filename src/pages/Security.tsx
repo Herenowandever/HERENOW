@@ -81,12 +81,12 @@ export function MfaChallenge() {
       <Brand />
       <form className="panel" onSubmit={submit}>
         <h2>Enter your sign-in code</h2>
-        <p>Open your authenticator app (for example Google Authenticator) and enter the 6-digit code for Musterly.</p>
+        <p>Open your authenticator app (for example Google Authenticator) and enter the 6-digit code for Ullara-Eni.</p>
         <CodeInput id="mfa-code" value={code} onChange={setCode} />
         {err && <Note tone="bad">{err}</Note>}
         <button className="btn primary big" disabled={busy || code.length !== 6}>{busy ? 'Checking…' : 'Continue'}</button>
         <button type="button" className="linkish" onClick={signOut}>Sign out</button>
-        <p className="small muted">Lost your phone? Contact Musterly to reset your two-step login.</p>
+        <p className="small muted">Lost your phone? Contact Ullara-Eni to reset your two-step login.</p>
       </form>
     </div>
   )
@@ -113,7 +113,7 @@ export function MfaSetup({ forced = false }: { forced?: boolean }) {
       for (const f of list?.all ?? []) {
         if (f.factor_type === 'totp' && f.status !== 'verified') await supabase.auth.mfa.unenroll({ factorId: f.id })
       }
-      const { data, error } = await supabase.auth.mfa.enroll({ factorType: 'totp', friendlyName: `Musterly ${new Date().toISOString().slice(0, 10)}` })
+      const { data, error } = await supabase.auth.mfa.enroll({ factorType: 'totp', friendlyName: `Ullara-Eni ${new Date().toISOString().slice(0, 10)}` })
       if (error) throw error
       setFactorId(data.id)
       setQr(data.totp.qr_code)

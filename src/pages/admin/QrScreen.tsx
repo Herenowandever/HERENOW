@@ -61,7 +61,7 @@ export function QrScreen({ officeId }: { officeId: string }) {
           {img ? <img className="qr-img" src={img} alt={`QR code for ${name}`} /> : <div className="qr-img placeholder" />}
           <div className="label">Or type today's code</div>
           <div className="code big-code num">{code ?? '······'}</div>
-          <p className="small muted">Open Musterly, tap "Scan site QR instead", and point your camera here. The code changes every day.</p>
+          <p className="small muted">Open Ullara-Eni, tap "Scan site QR instead", and point your camera here. The code changes every day.</p>
         </div>
       )}
     </div>

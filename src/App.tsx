@@ -50,7 +50,7 @@ export function App() {
         <div className="panel">
           <h2>The database needs an update</h2>
           <p>
-            This version of Musterly needs the newest database changes. In Supabase, open <strong>SQL Editor</strong>, paste the
+            This version of Ullara-Eni needs the newest database changes. In Supabase, open <strong>SQL Editor</strong>, paste the
             contents of the newest file in <code>supabase/migrations</code> (for example <code>0006_safety.sql</code>),
             and click <strong>Run</strong>. Then reload this page.
           </p>

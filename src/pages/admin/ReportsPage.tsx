@@ -49,7 +49,7 @@ export function ReportsPage() {
     const blob = new Blob(['﻿' + lines.join('\r\n')], { type: 'text/csv;charset=utf-8' })
     const a = document.createElement('a')
     a.href = URL.createObjectURL(blob)
-    a.download = `musterly-${company.name.replace(/[^a-z0-9]+/gi, '-').toLowerCase()}-${month}.csv`
+    a.download = `ullara-eni-${company.name.replace(/[^a-z0-9]+/gi, '-').toLowerCase()}-${month}.csv`
     document.body.appendChild(a)
     a.click()
     a.remove()
@@ -216,7 +216,7 @@ function WageSheet({ tabs }: { tabs: ReactNode }) {
     const blob = new Blob(['\uFEFF' + lines.join('\r\n')], { type: 'text/csv;charset=utf-8' })
     const a = document.createElement('a')
     a.href = URL.createObjectURL(blob)
-    a.download = `musterly-wages-${company.name.replace(/[^a-z0-9]+/gi, '-').toLowerCase()}-${period.from}-to-${period.to}.csv`
+    a.download = `ullara-eni-wages-${company.name.replace(/[^a-z0-9]+/gi, '-').toLowerCase()}-${period.from}-to-${period.to}.csv`
     document.body.appendChild(a)
     a.click()
     a.remove()

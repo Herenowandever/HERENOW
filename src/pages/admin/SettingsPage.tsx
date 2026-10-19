@@ -149,7 +149,7 @@ export function SettingsPage() {
         <section className="panel">
           <h2>Security and privacy</h2>
           <label className="check"><input type="checkbox" id="req-approval" checked={approval} onChange={(e) => setApproval(e.target.checked)} />
-            Approve new members before they can use Musterly</label>
+            Approve new members before they can use Ullara-Eni</label>
           <p className="small muted">When on, people who join with your company code wait on the Team page until an admin approves them.</p>
           <label className="field narrow">Keep check-in photos for
             <select id="keep-days" value={keepDays} onChange={(e) => setKeepDays(Number(e.target.value))}>
@@ -164,7 +164,7 @@ export function SettingsPage() {
           <p className="small muted">Selfies and crew photos older than this are deleted automatically each night. Attendance times are kept.</p>
           <label className="check"><input type="checkbox" id="req-mfa" checked={requireMfa} onChange={(e) => setRequireMfa(e.target.checked)} />
             Require two-step login for all admins</label>
-          <p className="small muted">Admins without it will be asked to set it up the next time they open Musterly. Set up your own below first.</p>
+          <p className="small muted">Admins without it will be asked to set it up the next time they open Ullara-Eni. Set up your own below first.</p>
         </section>
 
         {msg && <Note tone={msg.tone}>{msg.text}</Note>}
