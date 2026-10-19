@@ -189,3 +189,19 @@ input[type="date"], input[type="month"] { width: auto; }
 .remove-btn { justify-self: start; color: var(--bad); }
 .removed-summary { cursor: pointer; font-weight: 600; }
 .person.office-like { grid-template-columns: 40px minmax(0, 1fr) auto; }
+
+/* Company settings */
+.day-picks { border: 0; padding: 0; margin: 0; display: flex; flex-wrap: wrap; gap: 6px; }
+.day-picks legend { margin-bottom: 6px; }
+.day-pick { display: inline-flex; align-items: center; gap: 6px; border: 1px solid var(--line); border-radius: 999px; padding: 6px 12px; cursor: pointer; font-size: 0.88rem; }
+.day-pick input { width: 16px; height: 16px; }
+.day-pick.on { background: var(--accent-soft); border-color: var(--accent); color: var(--accent); font-weight: 600; }
+.cycle-seg { max-width: 260px; }
+.field.narrow { max-width: 260px; }
+.hol-list { list-style: none; margin: 0; padding: 0; display: grid; }
+.hol-list li { display: grid; grid-template-columns: 110px minmax(0, 1fr) auto; gap: 10px; align-items: center; padding: 6px 0; border-top: 1px solid var(--line); }
+.hol-list li:first-child { border-top: 0; }
+
+/* Wage sheet period */
+.period { flex-wrap: nowrap; gap: 6px; }
+.period h2 { white-space: nowrap; font-size: 1.1rem; }

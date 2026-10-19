@@ -1,4 +1,4 @@
-import { useState, type ReactNode } from 'react'
+import { useState, type FormEvent, type ReactNode } from 'react'
 import { supabase } from '../../supabase'
 import { useMember } from '../../lib/session'
 import { useAsync, must } from '../../lib/useAsync'
@@ -62,7 +62,7 @@ export function ReportsPage() {
       <button role="tab" aria-selected={tab === 'wages'} onClick={() => setTab('wages')}>Wage sheet</button>
     </div>
   )
-  if (tab === 'wages') return <WageSheet month={month} setMonth={setMonth} tabs={tabs} companyName={company.name} />
+  if (tab === 'wages') return <WageSheet tabs={tabs} />
 
   return (
     <div className="stack">
@@ -123,44 +123,100 @@ interface WageRow {
   job_title: string | null
   site_name: string | null
   active: boolean
+  pay_type: 'daily' | 'monthly'
   daily_wage: number | null
-  ot_hourly_rate: number | null
+  monthly_salary: number | null
+  worked_days: number
   full_days: number
   half_days: number
+  absent_days: number
+  paid_off_days: number
   no_clock_out_days: number
   ot_hours: number
   base_pay: number
   ot_pay: number
-  total_pay: number
+  bonus: number
+  advances: number
+  deductions: number
+  net_pay: number
 }
 
-const inr = (n: number) => '₹' + Number(n).toLocaleString('en-IN', { maximumFractionDigits: 2, minimumFractionDigits: 0 })
+interface Adjustment {
+  id: string
+  user_id: string
+  day: string
+  kind: 'advance' | 'deduction' | 'bonus'
+  amount: number
+  note: string | null
+}
 
-function WageSheet({ month, setMonth, tabs, companyName }: { month: string; setMonth: (m: string) => void; tabs: ReactNode; companyName: string }) {
-  const { data, loading, error } = useAsync(
-    async () => must(await supabase.rpc('wage_sheet', { p_month: `${month}-01` })) as WageRow[],
-    [month],
-  )
-  const rows = (data ?? []).filter((r) => r.full_days + r.half_days > 0 || r.daily_wage != null)
-  const total = rows.reduce((t, r) => t + Number(r.total_pay), 0)
-  const missingWage = rows.filter((r) => r.daily_wage == null && r.full_days + r.half_days > 0).length
+const inr = (n: number | string | null) => '₹' + Number(n ?? 0).toLocaleString('en-IN', { maximumFractionDigits: 2 })
+
+// Date helpers on YYYY-MM-DD strings.
+const toD = (s: string) => { const [y, m, d] = s.split('-').map(Number); return new Date(Date.UTC(y, m - 1, d)) }
+const fromD = (d: Date) => d.toISOString().slice(0, 10)
+const addDays = (s: string, n: number) => { const d = toD(s); d.setUTCDate(d.getUTCDate() + n); return fromD(d) }
+function weekOf(day: string, start: number) {
+  const d = toD(day)
+  const back = (d.getUTCDay() - start + 7) % 7
+  const from = addDays(day, -back)
+  return { from, to: addDays(from, 6) }
+}
+function monthOf(day: string) {
+  const d = toD(day)
+  const from = fromD(new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), 1)))
+  const to = fromD(new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth() + 1, 0)))
+  return { from, to }
+}
+
+function WageSheet({ tabs }: { tabs: ReactNode }) {
+  const { company } = useMember()
+  const today = dateIn(company.timezone)
+  const [unit, setUnit] = useState<'weekly' | 'monthly'>(company.pay_cycle ?? 'monthly')
+  const [anchor, setAnchor] = useState(today)
+  const period = unit === 'weekly' ? weekOf(anchor, company.week_starts ?? 1) : monthOf(anchor)
+
+  const { data, loading, error, reload } = useAsync(async () => {
+    const [sheet, adj, people] = await Promise.all([
+      supabase.rpc('wage_sheet_range', { p_from: period.from, p_to: period.to }),
+      supabase.from('pay_adjustments').select('id, user_id, day, kind, amount, note').gte('day', period.from).lte('day', period.to).order('day'),
+      supabase.from('profiles').select('id, full_name, active').eq('active', true).order('full_name'),
+    ])
+    return {
+      rows: must(sheet) as WageRow[],
+      adj: must(adj) as Adjustment[],
+      people: must(people) as { id: string; full_name: string }[],
+    }
+  }, [period.from, period.to])
+
+  const rows = (data?.rows ?? []).filter((r) => Number(r.worked_days) > 0 || r.daily_wage != null || r.monthly_salary != null || Number(r.net_pay) !== 0)
+  const total = rows.reduce((t, r) => t + Number(r.net_pay), 0)
+  const advances = rows.reduce((t, r) => t + Number(r.advances) + Number(r.deductions), 0)
+  const noRate = rows.filter((r) => (r.pay_type === 'monthly' ? r.monthly_salary == null : r.daily_wage == null) && Number(r.worked_days) > 0).length
   const open = rows.reduce((t, r) => t + r.no_clock_out_days, 0)
-  const label = prettyDate(`${month}-01`, { month: 'long', year: 'numeric' })
+  const label =
+    unit === 'weekly'
+      ? `${prettyDate(period.from, { day: 'numeric', month: 'short' })} – ${prettyDate(period.to, { day: 'numeric', month: 'short', year: 'numeric' })}`
+      : prettyDate(period.from, { month: 'long', year: 'numeric' })
+  const step = (dir: number) => setAnchor(unit === 'weekly' ? addDays(period.from, 7 * dir) : addDays(dir > 0 ? period.to : period.from, dir))
+  const names = new Map((data?.rows ?? []).map((r) => [r.user_id, r.full_name]))
 
   function exportCsv() {
     const esc = (v: unknown) => `"${String(v ?? '').replace(/"/g, '""')}"`
-    const header = ['Name', 'Job title', 'Site', 'Daily wage', 'Full days', 'Half days', 'Days without clock-out', 'Overtime hours', 'Overtime rate per hour', 'Basic pay', 'Overtime pay', 'Total pay']
+    const header = ['Name', 'Job title', 'Site', 'Paid', 'Rate', 'Full days', 'Half days', 'Paid offs and holidays', 'Absent days',
+      'Days without clock-out', 'Overtime hours', 'Basic pay', 'Overtime pay', 'Bonus', 'Advances', 'Deductions', 'Net pay']
     const lines = [header.map(esc).join(',')].concat(
       rows.map((r) =>
-        [r.full_name, r.job_title, r.site_name, r.daily_wage, r.full_days, r.half_days, r.no_clock_out_days, r.ot_hours,
-          r.ot_hourly_rate ?? 'auto', r.base_pay, r.ot_pay, r.total_pay].map(esc).join(','),
+        [r.full_name, r.job_title, r.site_name, r.pay_type === 'monthly' ? 'Monthly' : 'Daily',
+          r.pay_type === 'monthly' ? r.monthly_salary : r.daily_wage, r.full_days, r.half_days, r.paid_off_days, r.absent_days,
+          r.no_clock_out_days, r.ot_hours, r.base_pay, r.ot_pay, r.bonus, r.advances, r.deductions, r.net_pay].map(esc).join(','),
       ),
     )
-    lines.push(['Total', '', '', '', '', '', '', '', '', '', '', total.toFixed(2)].map(esc).join(','))
+    lines.push(['Total', ...Array(15).fill(''), total.toFixed(2)].map(esc).join(','))
     const blob = new Blob(['\uFEFF' + lines.join('\r\n')], { type: 'text/csv;charset=utf-8' })
     const a = document.createElement('a')
     a.href = URL.createObjectURL(blob)
-    a.download = `herenow-wages-${companyName.replace(/[^a-z0-9]+/gi, '-').toLowerCase()}-${month}.csv`
+    a.download = `herenow-wages-${company.name.replace(/[^a-z0-9]+/gi, '-').toLowerCase()}-${period.from}-to-${period.to}.csv`
     document.body.appendChild(a)
     a.click()
     a.remove()
@@ -171,54 +227,173 @@ function WageSheet({ month, setMonth, tabs, companyName }: { month: string; setM
     <div className="stack">
       {tabs}
       <div className="row between">
-        <h2>Wages · {label}</h2>
+        <div className="row period">
+          <button className="btn small-btn" onClick={() => step(-1)} aria-label="Previous period">‹</button>
+          <h2>{label}</h2>
+          <button className="btn small-btn" onClick={() => step(1)} disabled={period.to >= today} aria-label="Next period">›</button>
+        </div>
         <div className="row">
-          <input id="wage-month" type="month" value={month} onChange={(e) => e.target.value && setMonth(e.target.value)} aria-label="Month" />
+          <div className="seg" role="tablist" aria-label="Period">
+            <button role="tab" aria-selected={unit === 'weekly'} onClick={() => setUnit('weekly')}>Week</button>
+            <button role="tab" aria-selected={unit === 'monthly'} onClick={() => setUnit('monthly')}>Month</button>
+          </div>
           <button className="btn primary" onClick={exportCsv} disabled={!rows.length}>Export CSV</button>
         </div>
       </div>
       <div className="stats">
-        <div className="stat"><div className="label">Total to pay</div><div className="n num stat-money">₹{Math.round(total).toLocaleString('en-IN')}</div></div>
-        <div className="stat"><div className="label">People</div><div className="n num">{rows.length}</div></div>
-        <div className="stat"><div className="label">No wage set</div><div className={`n num ${missingWage ? 'late-c' : ''}`}>{missingWage}</div></div>
+        <div className="stat"><div className="label">Net to pay</div><div className="n num stat-money">₹{Math.round(total).toLocaleString('en-IN')}</div></div>
+        <div className="stat"><div className="label">Advances & deductions</div><div className="n num stat-money">₹{Math.round(advances).toLocaleString('en-IN')}</div></div>
+        <div className="stat"><div className="label">No pay rate set</div><div className={`n num ${noRate ? 'late-c' : ''}`}>{noRate}</div></div>
         <div className="stat"><div className="label">No clock-out</div><div className={`n num ${open ? 'bad-c' : ''}`}>{open}</div></div>
       </div>
       <section className="panel">
         {loading && !data ? <Loading /> : error ? <Note tone="bad">{friendly(error).text}</Note> : rows.length === 0 ? (
-          <p className="muted">No wages for {label} yet. Set daily wages on the Team page.</p>
+          <p className="muted">Nothing to pay for {label}. Set daily wages or salaries on the Team page.</p>
         ) : (
           <div className="tablewrap">
             <table>
               <thead>
                 <tr>
-                  <th>Name</th><th>Site</th><th className="r">Wage/day</th><th className="r">Full</th><th className="r">Half</th>
-                  <th className="r">OT hrs</th><th className="r">Basic</th><th className="r">OT pay</th><th className="r">Total</th>
+                  <th>Name</th><th className="r">Rate</th><th className="r">Days</th><th className="r">Off paid</th><th className="r">Absent</th>
+                  <th className="r">OT hrs</th><th className="r">Basic</th><th className="r">OT pay</th><th className="r">+ / −</th><th className="r">Net</th>
                 </tr>
               </thead>
               <tbody>
-                {rows.map((r) => (
-                  <tr key={r.user_id}>
-                    <td>{r.full_name}{r.no_clock_out_days > 0 && <span className="bad-c small"> · {r.no_clock_out_days} no clock-out</span>}</td>
-                    <td>{r.site_name ?? '—'}</td>
-                    <td className={`r num ${r.daily_wage == null ? 'late-c' : ''}`}>{r.daily_wage == null ? 'not set' : inr(r.daily_wage)}</td>
-                    <td className="r num">{r.full_days}</td>
-                    <td className="r num">{r.half_days}</td>
-                    <td className="r num">{Number(r.ot_hours).toFixed(1)}</td>
-                    <td className="r num">{inr(r.base_pay)}</td>
-                    <td className="r num">{inr(r.ot_pay)}</td>
-                    <td className="r num"><strong>{inr(r.total_pay)}</strong></td>
-                  </tr>
-                ))}
+                {rows.map((r) => {
+                  const adj = Number(r.bonus) - Number(r.advances) - Number(r.deductions)
+                  const rate = r.pay_type === 'monthly' ? r.monthly_salary : r.daily_wage
+                  return (
+                    <tr key={r.user_id}>
+                      <td>
+                        {r.full_name}
+                        {r.no_clock_out_days > 0 && <span className="bad-c small"> · {r.no_clock_out_days} no clock-out</span>}
+                        <div className="small muted">{r.site_name ?? 'No site'}</div>
+                      </td>
+                      <td className={`r num ${rate == null ? 'late-c' : ''}`}>{rate == null ? 'not set' : `${inr(rate)}/${r.pay_type === 'monthly' ? 'mo' : 'day'}`}</td>
+                      <td className="r num">{r.full_days}{r.half_days ? ` + ${r.half_days}½` : ''}</td>
+                      <td className="r num">{r.paid_off_days}</td>
+                      <td className={`r num ${r.absent_days ? 'bad-c' : ''}`}>{r.absent_days}</td>
+                      <td className="r num">{Number(r.ot_hours).toFixed(1)}</td>
+                      <td className="r num">{inr(r.base_pay)}</td>
+                      <td className="r num">{inr(r.ot_pay)}</td>
+                      <td className={`r num ${adj < 0 ? 'bad-c' : ''}`}>{adj === 0 ? '—' : (adj > 0 ? '+' : '−') + inr(Math.abs(adj))}</td>
+                      <td className="r num"><strong>{inr(r.net_pay)}</strong></td>
+                    </tr>
+                  )
+                })}
               </tbody>
             </table>
           </div>
         )}
         <p className="small muted">
-          A day counts as a half day when someone works less than half their shift. Days without a clock-out count as full days;
-          change any day on the Attendance page. Overtime is time beyond the shift, paid at the person's overtime rate, or their
-          daily wage divided by shift hours when no rate is set.
+          Pay follows the rules in Company settings. Days without a clock-out count as full days; change any day on the Attendance
+          page. Absent means a working day with no attendance, from the day the person was added.
         </p>
       </section>
+
+      {data && <Adjustments people={data.people} items={data.adj} names={names} period={period} onChange={reload} />}
     </div>
+  )
+}
+
+const KIND_LABEL = { advance: 'Advance', deduction: 'Deduction', bonus: 'Bonus' } as const
+
+function Adjustments({ people, items, names, period, onChange }: {
+  people: { id: string; full_name: string }[]
+  items: Adjustment[]
+  names: Map<string, string>
+  period: { from: string; to: string }
+  onChange: () => void
+}) {
+  const { company } = useMember()
+  const today = dateIn(company.timezone)
+  const [person, setPerson] = useState(people[0]?.id ?? '')
+  const [kind, setKind] = useState<Adjustment['kind']>('advance')
+  const [amount, setAmount] = useState('')
+  const [day, setDay] = useState(today >= period.from && today <= period.to ? today : period.to)
+  const [note, setNote] = useState('')
+  const [msg, setMsg] = useState<{ tone: 'ok' | 'bad'; text: string } | null>(null)
+  const [confirmDel, setConfirmDel] = useState<string | null>(null)
+
+  async function add(e: FormEvent) {
+    e.preventDefault()
+    setMsg(null)
+    const amt = Number(amount)
+    if (!person) return setMsg({ tone: 'bad', text: 'Choose a person.' })
+    if (!(amt > 0)) return setMsg({ tone: 'bad', text: 'Enter an amount greater than 0.' })
+    const { error } = await supabase.from('pay_adjustments').insert({
+      company_id: company.id, user_id: person, kind, amount: amt, day, note: note.trim() || null,
+    })
+    if (error) setMsg({ tone: 'bad', text: friendly(error).text })
+    else {
+      const who = people.find((p) => p.id === person)?.full_name ?? ''
+      setMsg({ tone: 'ok', text: `${KIND_LABEL[kind]} of ${inr(amt)} added for ${who}.${day < period.from || day > period.to ? ' It falls outside this period.' : ''}` })
+      setAmount('')
+      setNote('')
+      onChange()
+    }
+  }
+
+  async function remove(id: string) {
+    const { error } = await supabase.from('pay_adjustments').delete().eq('id', id)
+    setConfirmDel(null)
+    if (error) setMsg({ tone: 'bad', text: friendly(error).text })
+    else onChange()
+  }
+
+  return (
+    <section className="panel">
+      <h2>Advances, deductions and bonuses</h2>
+      <p className="small muted">Advances and deductions are subtracted from net pay in the period of their date; bonuses are added.</p>
+      <form className="row" onSubmit={add}>
+        <label className="field">Person
+          <select id="adj-person" value={person} onChange={(e) => setPerson(e.target.value)}>
+            {people.map((p) => <option key={p.id} value={p.id}>{p.full_name}</option>)}
+          </select>
+        </label>
+        <label className="field">Type
+          <select id="adj-kind" value={kind} onChange={(e) => setKind(e.target.value as Adjustment['kind'])}>
+            <option value="advance">Advance (cash given)</option>
+            <option value="deduction">Deduction</option>
+            <option value="bonus">Bonus</option>
+          </select>
+        </label>
+        <label className="field">Amount (₹)<input id="adj-amount" inputMode="decimal" required value={amount} onChange={(e) => setAmount(e.target.value)} /></label>
+        <label className="field">Date<input id="adj-day" type="date" required value={day} onChange={(e) => setDay(e.target.value)} /></label>
+        <label className="field">Note<input id="adj-note" value={note} maxLength={200} placeholder="Optional" onChange={(e) => setNote(e.target.value)} /></label>
+        <button className="btn primary">Add</button>
+      </form>
+      {msg && <Note tone={msg.tone}>{msg.text}</Note>}
+      {items.length === 0 ? (
+        <p className="muted small">None in this period.</p>
+      ) : (
+        <div className="tablewrap">
+          <table>
+            <thead><tr><th>Date</th><th>Name</th><th>Type</th><th className="r">Amount</th><th>Note</th><th /></tr></thead>
+            <tbody>
+              {items.map((a) => (
+                <tr key={a.id}>
+                  <td className="num">{prettyDate(a.day)}</td>
+                  <td>{names.get(a.user_id) ?? people.find((p) => p.id === a.user_id)?.full_name ?? '—'}</td>
+                  <td>{KIND_LABEL[a.kind]}</td>
+                  <td className={`r num ${a.kind === 'bonus' ? 'ok-c' : 'bad-c'}`}>{a.kind === 'bonus' ? '+' : '−'}{inr(a.amount)}</td>
+                  <td className="muted">{a.note ?? ''}</td>
+                  <td className="r">
+                    {confirmDel === a.id ? (
+                      <span className="row end">
+                        <button className="btn small-btn" onClick={() => remove(a.id)}>Delete</button>
+                        <button className="btn ghost small-btn" onClick={() => setConfirmDel(null)}>Keep</button>
+                      </span>
+                    ) : (
+                      <button className="btn ghost small-btn" onClick={() => setConfirmDel(a.id)}>Delete</button>
+                    )}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+    </section>
   )
 }

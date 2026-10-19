@@ -101,6 +101,8 @@ function MemberRow({ p, shifts, offices, isMe, onSaved, onRemoved }: {
   const [title, setTitle] = useState(p.job_title ?? '')
   const [wage, setWage] = useState(p.daily_wage != null ? String(p.daily_wage) : '')
   const [ot, setOt] = useState(p.ot_hourly_rate != null ? String(p.ot_hourly_rate) : '')
+  const [payType, setPayType] = useState<'daily' | 'monthly'>(p.pay_type ?? 'daily')
+  const [salary, setSalary] = useState(p.monthly_salary != null ? String(p.monthly_salary) : '')
   const active = p.active
   const [confirmRemove, setConfirmRemove] = useState(false)
   const [removing, setRemoving] = useState(false)
@@ -108,17 +110,19 @@ function MemberRow({ p, shifts, offices, isMe, onSaved, onRemoved }: {
   const num = (v: string) => (v.trim() === '' ? null : Number(v))
   const dirty =
     name !== p.full_name || shift !== (p.shift_id ?? '') || site !== (p.office_id ?? '') || role !== p.role ||
-    title !== (p.job_title ?? '') || num(wage) !== p.daily_wage || num(ot) !== p.ot_hourly_rate || active !== p.active
+    title !== (p.job_title ?? '') || num(wage) !== p.daily_wage || num(ot) !== p.ot_hourly_rate || active !== p.active ||
+    payType !== (p.pay_type ?? 'daily') || num(salary) !== p.monthly_salary
 
   async function save() {
     setMsg(null)
-    if ((num(wage) ?? 0) < 0 || Number.isNaN(num(wage)) || (num(ot) ?? 0) < 0 || Number.isNaN(num(ot))) {
+    if ([wage, ot, salary].some((v) => (num(v) ?? 0) < 0 || Number.isNaN(num(v)))) {
       setMsg({ tone: 'bad', text: 'Wages must be numbers of 0 or more.' })
       return
     }
     const { error } = await supabase.rpc('update_member', {
       p_member: p.id, p_role: role, p_shift: shift || null, p_job_title: title, p_active: active,
       p_office: site || null, p_daily_wage: num(wage), p_ot_rate: num(ot), p_full_name: name,
+      p_pay_type: payType, p_monthly_salary: num(salary),
     })
     if (error) setMsg({ tone: 'bad', text: friendly(error).text })
     else {
@@ -151,7 +155,10 @@ function MemberRow({ p, shifts, offices, isMe, onSaved, onRemoved }: {
             {!p.active && <span className="muted small"> · deactivated</span>}
           </div>
           <div className="meta">
-            {[p.job_title, siteName, p.daily_wage != null ? `₹${p.daily_wage}/day` : null].filter(Boolean).join(' · ') || 'No details yet'}
+            {[p.job_title, siteName,
+              p.pay_type === 'monthly'
+                ? (p.monthly_salary != null ? `₹${Number(p.monthly_salary).toLocaleString('en-IN')}/month` : 'salary not set')
+                : (p.daily_wage != null ? `₹${p.daily_wage}/day` : null)].filter(Boolean).join(' · ') || 'No details yet'}
           </div>
         </div>
       </div>
@@ -179,12 +186,22 @@ function MemberRow({ p, shifts, offices, isMe, onSaved, onRemoved }: {
               <option value="admin">Admin</option>
             </select>
           </label>
-          <label className="field">Daily wage (₹)<input id={`wage-${p.id}`} inputMode="decimal" value={wage} placeholder="e.g. 800" onChange={(e) => setWage(e.target.value)} /></label>
+          <label className="field">Paid
+            <select id={`pt-${p.id}`} value={payType} onChange={(e) => setPayType(e.target.value as 'daily' | 'monthly')}>
+              <option value="daily">Daily wage</option>
+              <option value="monthly">Monthly salary</option>
+            </select>
+          </label>
+          {payType === 'daily' ? (
+            <label className="field">Daily wage (₹)<input id={`wage-${p.id}`} inputMode="decimal" value={wage} placeholder="e.g. 800" onChange={(e) => setWage(e.target.value)} /></label>
+          ) : (
+            <label className="field">Monthly salary (₹)<input id={`salary-${p.id}`} inputMode="decimal" value={salary} placeholder="e.g. 25000" onChange={(e) => setSalary(e.target.value)} /></label>
+          )}
           <label className="field">Overtime ₹/hour<input id={`ot-${p.id}`} inputMode="decimal" value={ot} placeholder="Auto" onChange={(e) => setOt(e.target.value)} /></label>
           <button className="btn primary" disabled={!dirty} onClick={save}>Save</button>
         </div>
         {role === 'supervisor' && <p className="small muted">Supervisors mark attendance for everyone at their site. Pick a site above.</p>}
-        <p className="small muted">Overtime left blank is paid at the daily wage divided by shift hours.</p>
+        <p className="small muted">Overtime left blank uses the company overtime rule from Company settings. Monthly salary is paid per day as salary ÷ days in the month, including weekly offs and holidays.</p>
       </details>
       {!isMe && !confirmRemove && (
         <button className="btn ghost small-btn remove-btn" onClick={() => setConfirmRemove(true)}>Remove</button>

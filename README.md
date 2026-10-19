@@ -12,7 +12,7 @@ Built with React + Vite (a web app that installs to the home screen) and Supabas
 
 1. Sign up at [supabase.com](https://supabase.com) and create a new project. Pick a region close to your users (for India, **Mumbai**).
 2. Open **SQL Editor → New query**, paste everything from `supabase/migrations/0001_herenow.sql`, and click **Run**.
-3. Do the same with `supabase/migrations/0002_selfie_storage.sql`, then `0003_crews_and_wages.sql` and `0004_remove_member.sql`. Always run the files in number order; when an update adds a new file, run just that one.
+3. Do the same with `supabase/migrations/0002_selfie_storage.sql`, then `0003_crews_and_wages.sql`, `0004_remove_member.sql` and `0005_pay_rules.sql`. Always run the files in number order; when an update adds a new file, run just that one.
 4. Go to **Authentication → URL Configuration** and set **Site URL** to the address where the app will live (for example `https://your-project.vercel.app`). You can update it after deploying.
 5. Go to **Project Settings → API** and copy the **Project URL** and the **anon public** key.
 
@@ -51,6 +51,9 @@ Employees can install the app from their phone browser: on Android, use **Add to
 | Site supervisors | A supervisor is assigned to one site. On the **Crew** page they tick the workers present, take a group photo, and mark them in or out together. The database checks the supervisor is at that site (GPS or the site QR). |
 | Workers without a phone | Admins add them on the Team page. They never log in; their supervisor marks them. |
 | Daily wages | Set a daily wage and, optionally, an overtime rate per person. The **Wage sheet** report counts full days, half days (less than half a shift) and overtime, and exports to CSV. Admins can mark any day as full or half on the Attendance page. |
+| Company rules | Under **Company**: weekly off days, whether daily-wage staff are paid for offs and holidays, the half-day cut-off, when overtime starts and its rate (1×–2×), a holiday list, and a weekly or monthly pay cycle. |
+| Salary staff | Each person is paid a daily wage or a monthly salary. Monthly salary is paid per day as salary ÷ days in the month, including offs and holidays; absent days are unpaid. |
+| Advances & deductions | Record cash advances, deductions and bonuses on the wage sheet. They're applied to net pay in the period of their date. |
 | Languages | English, Hindi and Kannada for sign-in, clock-in, history and crew screens. Admin pages are in English. Have a native speaker check the wording before launch. |
 | Privacy notice | Shown before an employee's first clock-in, and recorded when they accept it. |
 | Multiple companies | Every table is protected by row-level security. Records are written only through database functions that check who is asking. |

@@ -1,6 +1,6 @@
 import { createContext, useCallback, useContext, useEffect, useState, type ReactNode } from 'react'
 import type { Session } from '@supabase/supabase-js'
-import { supabase, PROFILE_COLS, type Company, type Profile } from '../supabase'
+import { supabase, PROFILE_COLS, COMPANY_COLS, type Company, type Profile } from '../supabase'
 
 interface Ctx {
   loading: boolean
@@ -39,7 +39,12 @@ export function SessionProvider({ children }: { children: ReactNode }) {
     setDbError(null)
     setProfile((p as Profile) ?? null)
     if (p) {
-      const { data: c } = await supabase.from('companies').select('id, name, timezone, join_code').eq('id', (p as Profile).company_id).maybeSingle()
+      const { data: c, error: cErr } = await supabase.from('companies').select(COMPANY_COLS).eq('id', (p as Profile).company_id).maybeSingle()
+      if (cErr) {
+        setDbError(cErr.message)
+        setLoading(false)
+        return
+      }
       setCompany((c as Company) ?? null)
     } else {
       setCompany(null)

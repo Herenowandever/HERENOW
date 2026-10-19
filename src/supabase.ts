@@ -61,6 +61,8 @@ export interface Profile {
   office_id: string | null
   daily_wage: number | null
   ot_hourly_rate: number | null
+  pay_type: 'daily' | 'monthly'
+  monthly_salary: number | null
 }
 
 export interface Company {
@@ -68,7 +70,18 @@ export interface Company {
   name: string
   timezone: string
   join_code: string
+  weekly_offs: number[]
+  paid_weekly_off: boolean
+  paid_holidays: boolean
+  half_day_hours: number | null
+  ot_after_minutes: number
+  ot_multiplier: number
+  pay_cycle: 'monthly' | 'weekly'
+  week_starts: number
 }
+
+export const COMPANY_COLS =
+  'id, name, timezone, join_code, weekly_offs, paid_weekly_off, paid_holidays, half_day_hours, ot_after_minutes, ot_multiplier, pay_cycle, week_starts'
 
 export interface Shift {
   id: string
@@ -112,6 +125,6 @@ export type Method = 'gps' | 'qr' | 'crew' | 'manual'
 export const METHOD_LABEL: Record<Method, string> = { gps: 'GPS', qr: 'QR', crew: 'CREW', manual: 'MANUAL' }
 
 export const PROFILE_COLS =
-  'id, company_id, full_name, job_title, role, shift_id, active, consented_at, has_login, office_id, daily_wage, ot_hourly_rate'
+  'id, company_id, full_name, job_title, role, shift_id, active, consented_at, has_login, office_id, daily_wage, ot_hourly_rate, pay_type, monthly_salary'
 export const ATTENDANCE_COLS =
   'id, user_id, work_date, office_id, clock_in_at, clock_out_at, in_method, out_method, in_distance_m, selfie_path, shift_start, shift_end, is_late, edited_by, marked_by, group_photo_path, day_status'
