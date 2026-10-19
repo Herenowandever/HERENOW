@@ -1,0 +1,85 @@
+# HereNow
+
+Attendance for workplaces. Employees clock in from their phone with a **location check**, a **selfie**, and a **QR code backup**. Admins get a live attendance board, shift scheduling, office zones, and **monthly reports** they can export for payroll. Many companies can use one deployment; each company only ever sees its own data.
+
+Built with React + Vite (a web app that installs to the home screen) and Supabase (database, logins, photo storage).
+
+---
+
+## Setup (about 15 minutes)
+
+### 1. Create the Supabase project
+
+1. Sign up at [supabase.com](https://supabase.com) and create a new project. Pick a region close to your users (for India, **Mumbai**).
+2. Open **SQL Editor → New query**, paste everything from `supabase/migrations/0001_herenow.sql`, and click **Run**.
+3. Do the same with `supabase/migrations/0002_selfie_storage.sql`.
+4. Go to **Authentication → URL Configuration** and set **Site URL** to the address where the app will live (for example `https://herenow.vercel.app`). You can update it after deploying.
+5. Go to **Project Settings → API** and copy the **Project URL** and the **anon public** key.
+
+### 2. Deploy the app on Vercel
+
+1. Sign in at [vercel.com](https://vercel.com) with GitHub and click **Add New → Project**. Import this repository.
+2. Vercel detects Vite. Under **Environment Variables**, add:
+   - `VITE_SUPABASE_URL`: your Project URL
+   - `VITE_SUPABASE_ANON_KEY`: your anon public key
+3. Click **Deploy**. When it finishes, put the site address into Supabase's **Site URL** (step 1.4).
+
+Netlify, Cloudflare Pages and similar hosts work the same way: build command `npm run build`, output folder `dist`.
+
+### 3. First use
+
+1. Open the site, click **Create account**, confirm your email, and sign in.
+2. Choose **I'm setting up my company**. You become the company's admin.
+3. Go to **Offices & QR**, stand inside your office, and tap **Use my current location**. Choose a zone size (100–200 m suits most buildings).
+4. Go to **Team** and share the invite link or the 8-character company code with your employees.
+5. Optional: open **Open QR screen** on a tablet at reception as a backup for places where GPS is weak.
+
+Employees can install the app from their phone browser: on Android, use **Add to Home screen** in Chrome; on iPhone, use **Share → Add to Home Screen** in Safari.
+
+---
+
+## How it works
+
+| Feature | Details |
+|---|---|
+| Location check | The phone's GPS position is sent with each clock-in and clock-out. The **database** checks the distance to the company's offices, so the rule can't be skipped by editing the app. Readings worse than ±100 m are refused. |
+| Selfie | Taken with the front camera at clock-in and stored in a private bucket. Only the employee and their company's admins can open it. |
+| QR backup | Each office has a secret. The reception screen shows a QR code and a 6-character code that change every day. |
+| Shifts | Each shift has start and end times plus a grace period. Clocking in after the grace period marks the day as late. Night shifts that cross midnight are supported. |
+| Attendance board | Live list of who is on site, late or not in. Admins can correct times, for example when someone forgets to clock out. |
+| Monthly report | Days present, late days, QR check-ins, missing clock-outs, hours and overtime per person. Export as CSV for Excel or payroll software. |
+| Privacy notice | Shown before an employee's first clock-in, and recorded when they accept it. |
+| Multiple companies | Every table is protected by row-level security. Records are written only through database functions that check who is asking. |
+
+### Project layout
+
+```
+supabase/migrations/   database tables, security rules and functions
+src/pages/employee/    clock-in screen and personal history
+src/pages/admin/       attendance board, team, shifts, offices, QR screen, reports, company settings
+src/components/        selfie camera, QR scanner, layout
+src/lib/               sign-in session, time zones, GPS, friendly error messages
+```
+
+### Running locally
+
+```
+cp .env.example .env.local   # then fill in the two values
+npm install
+npm run dev
+```
+
+The camera and GPS need HTTPS or `localhost`. To test on a phone, deploy a preview on Vercel.
+
+---
+
+## Good to know
+
+- **GPS can be faked** on a rooted or developer-mode phone. The selfie and the server-side checks make cheating harder, but a determined person with a GPS-spoofing app can still pass the location check. For strict sites, use the QR screen, which requires being in front of it.
+- **Email confirmation** is on by default in Supabase. You can switch it off under **Authentication → Providers → Email** while testing.
+- Supabase's built-in email sender is rate limited. Before inviting a large team, add your own SMTP under **Authentication → Emails → SMTP Settings**.
+- Selfies are kept until you delete them. Removing old selfies automatically (for example after 90 days) is a sensible next step.
+
+## Ideas for later
+
+Leave requests · push reminders to clock in · map picker for offices · payroll integrations · paid plans per company · native app wrappers.
